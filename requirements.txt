@@ -1,0 +1,28 @@
+# AI Prompt Studio Ultimate - All Features
+# ==========================================
+
+# Core Framework
+streamlit==1.32.0
+
+# OpenAI Integration
+openai>=1.0.0
+
+# Environment Management
+python-dotenv
+
+# Image Processing
+pillow
+numpy
+
+# Optional: Interactive Features
+streamlit-drawable-canvas
+streamlit-image-coordinates
+
+# Note: All new features (Emotion Engine, Audio Mapping, etc.) 
+# are built into the included Python modules and require no 
+# additional dependencies beyond the above!
+
+# Development/Testing (Optional)
+# pytest
+# black
+# flake8
