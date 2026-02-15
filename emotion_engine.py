@@ -5,6 +5,9 @@ Comprehensive emotion mapping for realistic AI video generation.
 Maps emotions to micro-expressions, body language, vocal patterns, and temporal dynamics.
 """
 
+from typing import Dict, Any, List
+
+
 class EmotionEngine:
     """Database of realistic human emotions with detailed behavioral mappings."""
     
