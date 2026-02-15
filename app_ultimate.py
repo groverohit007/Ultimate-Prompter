@@ -463,13 +463,19 @@ with tabs[2]:
     
     with col1:
         st.markdown("### Emotions Used")
-        for emotion, count in sorted(stats['emotions_breakdown'].items(), key=lambda x: x[1], reverse=True):
-            st.write(f"{emotion}: {count}")
+        if stats['emotions_breakdown']:
+            for emotion, count in sorted(stats['emotions_breakdown'].items(), key=lambda x: x[1], reverse=True):
+                st.write(f"{emotion}: {count}")
+        else:
+            st.info("No data yet - generate your first prompt!")
     
     with col2:
         st.markdown("### Models Used")
-        for model, count in sorted(stats['models_breakdown'].items(), key=lambda x: x[1], reverse=True):
-            st.write(f"{model}: {count}")
+        if stats['models_breakdown']:
+            for model, count in sorted(stats['models_breakdown'].items(), key=lambda x: x[1], reverse=True):
+                st.write(f"{model}: {count}")
+        else:
+            st.info("No data yet - generate your first prompt!")
     
     st.divider()
     
@@ -605,4 +611,3 @@ with tabs[5]:
                 f.write(uploaded.read())
             if template_mgr.import_templates("temp_import.json"):
                 st.success("Imported!")
-
