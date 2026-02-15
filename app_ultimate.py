@@ -91,6 +91,8 @@ if "poser_data" not in st.session_state:
     st.session_state.poser_data = None
 if "batch_results" not in st.session_state:
     st.session_state.batch_results = []
+if "custom_emotions" not in st.session_state:
+    st.session_state.custom_emotions = {}
 
 # Services
 svc = OpenAIService(api_key=API_KEY, model=st.session_state.model)
@@ -611,3 +613,4 @@ with tabs[5]:
                 f.write(uploaded.read())
             if template_mgr.import_templates("temp_import.json"):
                 st.success("Imported!")
+
