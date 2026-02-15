@@ -107,7 +107,10 @@ class AnalyticsTracker:
                 "avg_iterations": 0,
                 "avg_success_rating": 0,
                 "time_saved_hours": 0,
-                "improvement_rate": 0
+                "improvement_rate": 0,
+                "emotions_breakdown": {},
+                "models_breakdown": {},
+                "intensities_breakdown": {}
             }
         
         # Top emotion
