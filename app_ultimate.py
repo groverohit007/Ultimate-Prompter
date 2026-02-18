@@ -21,6 +21,7 @@ from template_manager import TemplateManager
 from analytics_tracker import AnalyticsTracker
 from negative_prompt_generator import NegativePromptGenerator
 from batch_processor import BatchProcessor
+from ultra_realism_engine import UltraRealismEngine
 
 load_dotenv()
 st.set_page_config(page_title="AI Prompt Studio Ultimate", layout="wide", page_icon="🎬")
@@ -549,34 +550,379 @@ with tabs[3]:
                 st.write(data)
 
 ######################
-# TAB 4: Other Tools (Cloner, etc.)
+# TAB 4: Other Tools (Fully Implemented)
 ######################
 with tabs[4]:
-    st.header("📸 Other Tools")
+    st.header("📸 Professional Tools Suite")
     
-    tool = st.selectbox("Select Tool", ["Cloner", "PerfectCloner", "Multi-Angle", "Wardrobe", "Prompter", "Poser", "Captions"])
+    tool = st.selectbox("Select Tool", [
+        "🎯 Cloner + Ultra Realism",
+        "✨ PerfectCloner", 
+        "📐 Multi-Angle Grid", 
+        "👗 Digital Wardrobe", 
+        "✍️ Prompter Builder", 
+        "🕺 Poser", 
+        "📝 Caption Generator"
+    ])
     
-    if tool == "Cloner":
-        st.subheader("Cloner")
-        img = st.file_uploader("Upload", type=["jpg","png","webp"], key="clone")
-        if img and st.button("Analyze"):
-            with st.spinner("Analyzing..."):
+    # ========== CLONER + ULTRA REALISM ==========
+    if tool == "🎯 Cloner + Ultra Realism":
+        st.subheader("🎯 Cloner + Ultra Realism Engine")
+        st.info("Clone a scene with photorealistic enhancements for images that look like real people")
+        
+        img = st.file_uploader("Upload Reference Image", type=["jpg","png","webp","jpeg"], key="clone_img")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            use_ultra_realism = st.checkbox("✨ Enable Ultra Realism Engine", value=True, help="Add photorealistic enhancements")
+        with col2:
+            if use_ultra_realism:
+                realism_level = st.select_slider("Realism Level", ["Medium", "High", "Maximum"], value="High")
+            else:
+                realism_level = None
+        
+        if use_ultra_realism:
+            st.caption("Ultra Realism adds: Natural skin texture, realistic lighting, authentic imperfections, professional camera simulation")
+        
+        if img and st.button("🔍 Analyze & Clone", type="primary"):
+            with st.spinner("Analyzing scene and applying Master DNA..."):
                 data = svc.cloner_analyze_filelike(img, st.session_state.master_prompt)
-            st.text_area("Prompt", value=data.get("full_prompt",""), height=250)
-            copy_button("Copy", data.get("full_prompt",""), "clone")
+            
+            base_prompt = data.get("full_prompt", "")
+            
+            # Apply Ultra Realism if enabled
+            if use_ultra_realism:
+                from ultra_realism_engine import UltraRealismEngine
+                
+                with st.spinner("Applying Ultra Realism enhancements..."):
+                    enhanced_prompt = UltraRealismEngine.enhance_prompt(base_prompt, realism_level)
+                    negative_prompt = UltraRealismEngine.get_negative_prompt()
+                
+                st.success("✅ Ultra-Realistic Prompt Generated!")
+                
+                # Show realism analysis
+                analysis = UltraRealismEngine.analyze_for_realism(base_prompt)
+                col_a, col_b = st.columns(2)
+                col_a.metric("Realism Score", f"{analysis['realism_score']}/100")
+                col_b.metric("Level", analysis['realism_level'])
+                
+                if analysis['suggestions']:
+                    with st.expander("💡 Realism Suggestions"):
+                        for sugg in analysis['suggestions']:
+                            st.write(f"• {sugg}")
+                
+                st.divider()
+                
+                # Main prompt
+                st.markdown("### 🎯 Enhanced Prompt (With Ultra Realism)")
+                st.text_area("Copy this to your image generator", value=enhanced_prompt, height=400, key="clone_enhanced")
+                copy_button("📋 Copy Enhanced Prompt", enhanced_prompt, "clone_enh")
+                
+                # Negative prompt
+                st.markdown("### 🚫 Negative Prompt (For Ultra Realism)")
+                st.text_area("Paste this in negative prompt field", value=negative_prompt, height=100, key="clone_neg")
+                copy_button("📋 Copy Negative Prompt", negative_prompt, "clone_neg_btn")
+                
+                # Show base prompt for comparison
+                with st.expander("📄 Base Prompt (Without Ultra Realism)"):
+                    st.text_area("", value=base_prompt, height=200, key="clone_base")
+            
+            else:
+                # Standard cloner without ultra realism
+                st.success("✅ Standard Clone Generated!")
+                st.text_area("Cloned Prompt", value=base_prompt, height=300, key="clone_std")
+                copy_button("📋 Copy Prompt", base_prompt, "clone_std_btn")
     
-    elif tool == "Captions":
-        st.subheader("Captions")
-        img = st.file_uploader("Upload", type=["jpg","png"], key="cap")
-        style = st.selectbox("Style", ["Funny","Serious","Inspirational"])
-        lang = st.radio("Language", ["English","Hindi"], horizontal=True)
-        if img and st.button("Generate"):
-            with st.spinner("Writing..."):
-                res = svc.captions_generate_filelike(img, style, lang)
-            st.text_area("Caption", value=res.get("caption",""), height=100)
-            st.text_input("Hashtags", value=" ".join(res.get("hashtags",[])))
+    # ========== PERFECT CLONER ==========
+    elif tool == "✨ PerfectCloner":
+        st.subheader("✨ PerfectCloner")
+        st.caption("Precisely recreate an image with detailed schema analysis")
+        
+        pimg = st.file_uploader("Upload Image to Recreate", type=["jpg","png","webp","jpeg"], key="pc_img")
+        identity_lock = st.checkbox("🔒 Enable Identity Lock", value=True, help="Maintain character identity from Master DNA")
+        
+        if pimg and st.button("🔬 Analyze Schema", type="primary"):
+            with st.spinner("Performing detailed analysis..."):
+                data = svc.perfectcloner_analyze_filelike(pimg, st.session_state.master_prompt, identity_lock)
+            
+            st.success("✅ Schema Analysis Complete!")
+            
+            rec_prompt = data.get("recreation_prompt", "")
+            neg_prompt = data.get("negative_prompt", "")
+            notes = data.get("notes", "")
+            
+            st.text_area("Recreation Prompt", value=rec_prompt, height=300, key="pc_rec")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                copy_button("📋 Copy Recreation Prompt", rec_prompt, "pc_rec_btn")
+            with col2:
+                if st.button("💾 Save as Template"):
+                    template_mgr.save_template(
+                        name=f"PerfectClone - {datetime.now().strftime('%Y%m%d')}",
+                        prompt=rec_prompt,
+                        category="PerfectCloner",
+                        tags=["perfect_clone", "recreation"],
+                        notes=notes
+                    )
+                    st.success("Saved to Templates!")
+            
+            with st.expander("📊 Full Analysis Data"):
+                st.json(data)
     
-    # Add other tools similarly...
+    # ========== MULTI-ANGLE GRID ==========
+    elif tool == "📐 Multi-Angle Grid":
+        st.subheader("📐 Multi-Angle Character Sheet")
+        st.caption("Generate 20 unique camera angles for your character")
+        
+        ref_img = st.file_uploader("Upload Character Reference", type=["png","jpg","webp","jpeg"], key="mag_img")
+        
+        if st.button("🔄 Reset", key="mag_reset_btn"):
+            st.session_state.multi_angle_data = None
+            st.rerun()
+        
+        if ref_img and st.button("📊 Generate 20-Angle Plan", type="primary"):
+            with st.spinner("Planning 20 unique angles..."):
+                plan = svc.multi_angle_planner_filelike(ref_img, st.session_state.master_prompt)
+            
+            if plan:
+                st.session_state.multi_angle_data = plan
+                st.success("✅ 20-Angle Plan Generated!")
+                st.rerun()
+        
+        # Show plan if exists
+        if st.session_state.multi_angle_data:
+            plan_data = st.session_state.multi_angle_data
+            
+            st.divider()
+            st.markdown("### Step 1: Generate Grid")
+            st.text_area("Grid Generation Prompt", value=plan_data.get("grid_prompt",""), height=150, key="mag_grid")
+            copy_button("📋 Copy Grid Prompt", plan_data.get("grid_prompt",""), "mag_grid_btn")
+            
+            st.divider()
+            st.markdown("### Step 2: Select Individual Angle")
+            
+            angles_list = plan_data.get("angles", [])
+            angle_options = [f"{a.get('id',0)}. {a.get('name','Unknown')}" for a in angles_list]
+            
+            selected_option = st.selectbox("Choose Angle", angle_options, key="mag_select")
+            
+            if selected_option:
+                idx = int(selected_option.split(".")[0]) - 1
+                if 0 <= idx < len(angles_list):
+                    selected_angle = angles_list[idx]
+                    
+                    st.success(f"Selected: **{selected_angle.get('name')}**")
+                    
+                    # Generate physics-enhanced prompt
+                    final_prompt = svc.build_physics_prompt(st.session_state.master_prompt, selected_angle)
+                    
+                    st.text_area("Physics-Enhanced Prompt", value=final_prompt, height=250, key="mag_final")
+                    copy_button("📋 Copy Angle Prompt", final_prompt, "mag_final_btn")
+    
+    # ========== DIGITAL WARDROBE ==========
+    elif tool == "👗 Digital Wardrobe":
+        st.subheader("👗 Digital Wardrobe")
+        st.caption("Fuse outfit from reference onto your character")
+        
+        wardrobe_img = st.file_uploader("Upload Outfit Reference", type=["png","jpg","webp","jpeg"], key="wardrobe_img")
+        
+        st.info("💡 Tip: Upload an image showing the outfit you want. The tool will extract the clothing and fuse it with your character.")
+        
+        if wardrobe_img and st.button("🧵 Analyze & Wear Outfit", type="primary"):
+            with st.spinner("Extracting outfit details and fusing with character..."):
+                w_data = svc.wardrobe_fuse_filelike(wardrobe_img, st.session_state.master_prompt)
+            
+            st.success("✅ Outfit Fused!")
+            
+            outfit_desc = w_data.get("outfit_description", "")
+            fused_prompt = w_data.get("fused_prompt", "")
+            
+            with st.expander("👔 Outfit Description"):
+                st.write(outfit_desc)
+            
+            st.text_area("Final Prompt with Outfit", value=fused_prompt, height=300, key="wardrobe_final")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                copy_button("📋 Copy Wardrobe Prompt", fused_prompt, "wardrobe_btn")
+            with col2:
+                if st.button("💾 Save as Template"):
+                    template_mgr.save_template(
+                        name=f"Wardrobe - {datetime.now().strftime('%Y%m%d')}",
+                        prompt=fused_prompt,
+                        category="Wardrobe",
+                        tags=["outfit", "wardrobe"],
+                        notes=f"Outfit: {outfit_desc[:100]}"
+                    )
+                    st.success("Saved!")
+    
+    # ========== PROMPTER BUILDER ==========
+    elif tool == "✍️ Prompter Builder":
+        st.subheader("✍️ Prompter - Structured Prompt Builder")
+        st.caption("Build professional prompts with dropdown selections")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("**Character & Pose**")
+            pose = st.selectbox("Pose", ["Confident stance", "Sitting relaxed", "Walking toward camera", "Close-up portrait", "Action pose", "Casual lean"], key="p_pose")
+            attire = st.selectbox("Attire", ["Professional suit", "Casual jeans and t-shirt", "Formal dress", "Business casual", "Athletic wear", "Traditional clothing"], key="p_attire")
+            jewellery = st.selectbox("Accessories", ["Minimal jewelry", "Statement pieces", "Watch only", "None", "Traditional jewelry"], key="p_jewel")
+        
+        with col2:
+            st.markdown("**Environment & Technical**")
+            lighting = st.selectbox("Lighting", ["Soft natural light", "Golden hour", "Studio softbox", "Dramatic side lighting", "Neon/urban", "Overcast natural"], key="p_light")
+            camera_angle = st.selectbox("Camera Angle", ["Eye level", "Slightly low angle", "High angle", "Profile view", "Over-the-shoulder"], key="p_cam")
+            background = st.selectbox("Background", ["Blurred studio", "Urban street", "Nature/outdoor", "Modern interior", "Minimalist solid color"], key="p_bg")
+        
+        st.divider()
+        
+        camera_lens = st.selectbox("Lens Choice", ["50mm f/1.8 (natural)", "85mm f/1.4 (portrait)", "35mm f/2 (environmental)", "24mm f/2.8 (wide)"], key="p_lens")
+        
+        if st.button("🎨 Generate Structured Prompt", type="primary"):
+            fields = {
+                "pose": pose,
+                "attire": attire,
+                "lighting": lighting,
+                "camera_angle": camera_angle,
+                "camera_lens": camera_lens,
+                "background": background,
+                "jewellery": jewellery
+            }
+            
+            prompt = svc.prompter_build(st.session_state.master_prompt, fields)
+            
+            st.success("✅ Structured Prompt Generated!")
+            st.text_area("Generated Prompt", value=prompt, height=350, key="prompter_result")
+            
+            col_a, col_b = st.columns(2)
+            with col_a:
+                copy_button("📋 Copy Prompt", prompt, "prompter_btn")
+            with col_b:
+                if st.button("💾 Save as Template"):
+                    template_mgr.save_template(
+                        name=f"Prompter - {pose[:20]}",
+                        prompt=prompt,
+                        category="Prompter",
+                        tags=["prompter", "structured", attire.split()[0].lower()],
+                        notes=f"Pose: {pose}, Lighting: {lighting}"
+                    )
+                    st.success("Saved!")
+    
+    # ========== POSER ==========
+    elif tool == "🕺 Poser":
+        st.subheader("🕺 Poser - Pose Variation Generator")
+        st.caption("Generate 5 pose variations from a reference")
+        
+        poser_img = st.file_uploader("Upload Reference Pose", type=["jpg","png","webp","jpeg"], key="poser_img")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            pose_style = st.selectbox("Style Direction", ["Casual & Natural", "Elegant & Graceful", "Edgy & Bold", "Professional & Composed", "Dynamic & Active"], key="poser_style")
+        with col2:
+            num_variations = st.slider("Number of Variations", 3, 7, 5, key="poser_num")
+        
+        if poser_img and st.button("🎭 Generate Pose Variations", type="primary"):
+            with st.spinner("Creating pose variations..."):
+                st.session_state.poser_data = svc.poser_variations_filelike(poser_img, st.session_state.master_prompt, pose_style)
+            
+            st.success(f"✅ Generated {num_variations} Pose Variations!")
+            st.rerun()
+        
+        # Display variations
+        if st.session_state.poser_data:
+            data = st.session_state.poser_data
+            prompts = data.get("prompts", [])[:num_variations]
+            scene_lock = data.get("scene_lock", "")
+            
+            st.divider()
+            st.markdown("### Choose Your Variation")
+            
+            # Create radio options
+            variation_names = [p.get("pose_name", f"Pose {i+1}") for i, p in enumerate(prompts)]
+            selected_variation = st.radio("Select Pose", variation_names, key="poser_select")
+            
+            # Find selected variation
+            for p in prompts:
+                if p.get("pose_name") == selected_variation:
+                    st.success(f"**Selected:** {p.get('pose_name')}")
+                    
+                    # Build full prompt
+                    full_prompt = f"{st.session_state.master_prompt}\n\n"
+                    full_prompt += f"POSE: {p.get('pose_name')}\n"
+                    full_prompt += f"DESCRIPTION: {p.get('pose_description')}\n"
+                    full_prompt += f"FACIAL EXPRESSION: {p.get('facial_expression')}\n\n"
+                    full_prompt += f"SCENE CONSISTENCY: {scene_lock}"
+                    
+                    st.text_area("Pose Prompt", value=full_prompt, height=250, key="poser_final")
+                    
+                    col_x, col_y = st.columns(2)
+                    with col_x:
+                        copy_button("📋 Copy Pose Prompt", full_prompt, "poser_copy")
+                    with col_y:
+                        if st.button("💾 Save as Template"):
+                            template_mgr.save_template(
+                                name=f"Poser - {p.get('pose_name')}",
+                                prompt=full_prompt,
+                                category="Poser",
+                                tags=["poser", "pose", pose_style.split()[0].lower()],
+                                notes=p.get('pose_description', '')
+                            )
+                            st.success("Saved!")
+                    break
+    
+    # ========== CAPTION GENERATOR ==========
+    elif tool == "📝 Caption Generator":
+        st.subheader("📝 Instagram Caption Generator")
+        st.caption("Generate engaging captions with hashtags")
+        
+        cap_img = st.file_uploader("Upload Image", type=["jpg","png","webp","jpeg"], key="cap_img")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            caption_style = st.selectbox("Caption Tone", ["Funny & Witty", "Serious & Professional", "Inspirational & Motivational", "Casual & Friendly", "Mysterious & Intriguing"], key="cap_style")
+        with col2:
+            caption_lang = st.selectbox("Language", ["English", "Hindi", "Hinglish", "Spanish"], key="cap_lang")
+        
+        include_emojis = st.checkbox("Include Emojis", value=True)
+        num_hashtags = st.slider("Number of Hashtags", 3, 10, 4, key="cap_hashtags")
+        
+        if cap_img and st.button("✍️ Generate Caption", type="primary"):
+            with st.spinner("Writing caption..."):
+                # Extract base style
+                style_map = {
+                    "Funny & Witty": "Funny",
+                    "Serious & Professional": "Serious",
+                    "Inspirational & Motivational": "Inspirational",
+                    "Casual & Friendly": "Engaging",
+                    "Mysterious & Intriguing": "Mysterious"
+                }
+                base_style = style_map.get(caption_style, "Engaging")
+                
+                res = svc.captions_generate_filelike(cap_img, base_style, caption_lang)
+            
+            st.success("✅ Caption Generated!")
+            
+            caption_text = res.get("caption", "")
+            hashtags_list = res.get("hashtags", [])[:num_hashtags]
+            
+            # Show caption
+            st.markdown("### 📱 Your Caption")
+            st.text_area("Caption Text", value=caption_text, height=120, key="cap_text")
+            
+            # Show hashtags
+            st.markdown("### #️⃣ Hashtags")
+            hashtags_str = " ".join(hashtags_list)
+            st.text_input("Hashtags", value=hashtags_str, key="cap_hash_display")
+            
+            # Combined output
+            st.divider()
+            st.markdown("### 📋 Complete Post")
+            complete_post = f"{caption_text}\n\n{hashtags_str}"
+            st.text_area("Copy entire post", value=complete_post, height=150, key="cap_complete")
+            
+            copy_button("📋 Copy Complete Post", complete_post, "cap_copy")
 
 ######################
 # TAB 5: Settings
