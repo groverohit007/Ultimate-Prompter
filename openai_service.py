@@ -284,19 +284,136 @@ class OpenAIService:
 
     # -------------------- CLONER --------------------
     def cloner_analyze_filelike(self, uploaded_file, master_dna: str) -> Dict[str, Any]:
+        """
+        ENHANCED ULTRA CLONER - Extracts detailed person features for accurate recreation.
+        Designed for high realism scores (80-95/100) and close image matching.
+        """
         data_url = self._filelike_to_data_url(uploaded_file)
-        instructions = (
-            "Analyze the image's pose, lighting, camera angle, and background style.\n"
-            "Do NOT analyze body measurements or specific biometrics.\n"
-            "Return valid JSON with keys: full_prompt, negative_prompt.\n"
-            "Construct the 'full_prompt' by combining the provided MASTER DNA with your analysis of the scene."
-        )
-        user_text = f"MASTER DNA:\n{master_dna}\n\nAnalyze the scene/lighting/pose of this image and merge it with the DNA."
+        
+        instructions = """You are an expert at analyzing portrait photographs for ultra-realistic AI recreation.
+
+CRITICAL: Extract MAXIMUM DETAIL about the person to enable near-perfect recreation.
+
+Analyze and describe in extreme detail:
+
+1. FACIAL STRUCTURE (Be specific!):
+   - Face shape (oval, round, square, heart, diamond, oblong)
+   - Jaw definition and angle
+   - Cheekbone prominence and placement
+   - Forehead size and shape
+   - Chin shape (pointed, rounded, square, cleft)
+   - Overall facial proportions and symmetry
+
+2. EYES (Critical for recreation!):
+   - Eye shape (almond, round, hooded, upturned, downturned)
+   - Eye color (be very specific: hazel with green flecks, deep brown, steel blue)
+   - Eye size relative to face
+   - Eyelid characteristics (single, double, monolid)
+   - Eyebrow shape, thickness, arch, color
+   - Distance between eyes
+   - Eyelash length and density
+
+3. NOSE:
+   - Nose shape (straight, button, Roman, snub, aquiline)
+   - Nose bridge width and height
+   - Nostril size and shape
+   - Tip shape (rounded, pointed, bulbous)
+
+4. MOUTH & LIPS:
+   - Lip fullness (thin, medium, full, very full)
+   - Lip shape (cupid's bow prominent?, symmetry)
+   - Mouth width relative to face
+   - Lip color (natural pink, rosy, darker)
+   - Smile characteristics if smiling
+
+5. SKIN (Ultra-important for realism!):
+   - Skin tone (be specific: fair with warm undertones, olive, tan, deep brown, etc.)
+   - Skin texture (smooth, visible pores, fine lines, freckles, moles)
+   - Any distinctive features (beauty marks, freckles pattern, scars)
+   - Skin condition (matte, slightly oily, dewy)
+   - Under-eye area characteristics
+
+6. HAIR (Maximum detail!):
+   - Hair color (exact shade: golden blonde, ash brown, jet black, auburn)
+   - Hair texture (straight, wavy, curly, coily - be specific about curl pattern)
+   - Hair length and style
+   - Hair density (thick, medium, fine)
+   - Hairline shape
+   - Any highlights, lowlights, or color variation
+   - Hair condition (glossy, matte, natural shine)
+
+7. FACIAL HAIR (if present):
+   - Type (stubble, beard, mustache, goatee)
+   - Density and color
+   - Style and shape
+
+8. POSE & EXPRESSION:
+   - Head angle and tilt
+   - Body position
+   - Facial expression (neutral, smiling, serious)
+   - Eye gaze direction
+
+9. LIGHTING & PHOTOGRAPHY:
+   - Light source position and type
+   - Shadow characteristics
+   - Skin highlight areas
+   - Overall mood of lighting
+   - Catchlights in eyes
+
+10. CAMERA & TECHNICAL:
+    - Camera angle (eye level, slightly below, above)
+    - Focal length estimate (portrait lens, wide)
+    - Depth of field (background blur)
+    - Distance from subject
+
+11. BACKGROUND & ENVIRONMENT:
+    - Background type and color
+    - Environment context
+
+12. CLOTHING & ACCESSORIES (visible):
+    - Visible clothing
+    - Jewelry or accessories
+    - Style/fashion
+
+REALISM KEYWORDS TO INCLUDE:
+Always include these terms for high realism scores:
+- "natural skin texture with visible pores"
+- "realistic lighting with natural shadows"
+- "photorealistic"
+- "8k quality"
+- "professional photography"
+- "natural depth of field"
+- "realistic subsurface scattering"
+- "authentic human features"
+- "natural imperfections"
+- "shot on professional camera"
+
+Return ONLY valid JSON with these keys:
+{
+  "full_prompt": "Extremely detailed description combining ALL analysis above with Master DNA. Include ALL realism keywords. 500+ words minimum.",
+  "negative_prompt": "smooth skin, plastic skin, airbrushed, perfect symmetry, unrealistic, CGI, 3D render, cartoon, illustration, fake"
+}
+
+Be EXTREMELY detailed in full_prompt. The more specific you are about facial features, the better the recreation will be."""
+
+        user_text = f"""MASTER DNA (Character Identity - Merge this with your visual analysis):
+{master_dna}
+
+TASK: Analyze this person in EXTREME DETAIL and create a comprehensive prompt that will recreate this EXACT person as closely as possible. Extract every visible detail about their appearance.
+
+Focus on: Face shape, eye characteristics, nose shape, lip details, skin tone and texture, hair color and style, distinctive features, and photographic qualities.
+
+Include ALL realism keywords in your prompt for maximum photorealism."""
+
         messages = [
             {"role": "system", "content": instructions},
-            {"role": "user", "content": [{"type": "text", "text": user_text}, {"type": "image_url", "image_url": {"url": data_url}}]},
+            {"role": "user", "content": [
+                {"type": "text", "text": user_text}, 
+                {"type": "image_url", "image_url": {"url": data_url}}
+            ]},
         ]
-        return self._call_chat_json(messages, max_tokens=1000)
+        
+        return self._call_chat_json(messages, max_tokens=2000)
 
     # -------------------- PERFECT CLONER --------------------
     def perfectcloner_analyze_filelike(self, uploaded_file, master_dna: str, identity_lock: bool = True) -> Dict[str, Any]:

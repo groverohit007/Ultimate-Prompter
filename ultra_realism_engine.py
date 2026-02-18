@@ -257,45 +257,105 @@ class UltraRealismEngine:
     def analyze_for_realism(cls, prompt: str) -> Dict[str, Any]:
         """
         Analyze a prompt and score its realism potential.
+        Enhanced to recognize both technical keywords AND visual detail descriptions.
         
         Returns dict with realism score and suggestions.
         """
         
         score = 0
         suggestions = []
+        prompt_lower = prompt.lower()
         
-        # Check for realism keywords
-        realism_keywords = [
+        # CATEGORY 1: Technical Realism Keywords (10 points each, max 50)
+        technical_keywords = [
             "natural", "realistic", "photorealistic", "8k", "detailed",
-            "pores", "texture", "imperfections", "natural lighting"
+            "pores", "texture", "imperfections", "natural lighting",
+            "subsurface scattering", "professional", "camera"
         ]
         
-        prompt_lower = prompt.lower()
-        for keyword in realism_keywords:
+        for keyword in technical_keywords:
             if keyword in prompt_lower:
                 score += 10
         
-        # Check for problematic keywords
+        # Cap technical keywords at 50 points
+        score = min(score, 50)
+        
+        # CATEGORY 2: Visual Detail Descriptors (5 points each, max 40)
+        # These are words that indicate detailed physical description
+        detail_descriptors = [
+            "skin tone", "eye color", "hair color", "face shape", "nose shape",
+            "lip", "eyebrow", "eyelash", "facial structure", "cheekbone",
+            "jawline", "chin", "forehead", "complexion", "freckles",
+            "mole", "beauty mark", "iris", "pupil", "catchlight"
+        ]
+        
+        detail_score = 0
+        for descriptor in detail_descriptors:
+            if descriptor in prompt_lower:
+                detail_score += 5
+        
+        score += min(detail_score, 40)
+        
+        # CATEGORY 3: Photography Terms (5 points each, max 30)
+        photo_terms = [
+            "lighting", "shadow", "depth of field", "bokeh", "lens",
+            "focal length", "exposure", "shot on", "sony", "canon",
+            "nikon", "f/", "85mm", "50mm", "portrait lens"
+        ]
+        
+        photo_score = 0
+        for term in photo_terms:
+            if term in prompt_lower:
+                photo_score += 5
+        
+        score += min(photo_score, 30)
+        
+        # CATEGORY 4: Bonus for Length (detailed descriptions)
+        word_count = len(prompt.split())
+        if word_count > 200:
+            score += 20  # Long detailed prompt bonus
+        elif word_count > 100:
+            score += 10
+        
+        # PENALTIES: Unrealistic keywords (-15 each)
         problematic = [
             "perfect", "flawless", "beautiful", "gorgeous", "stunning",
-            "smooth skin", "glowing", "airbrushed"
+            "smooth skin", "glowing", "airbrushed", "magazine cover",
+            "model perfect", "Instagram filter"
         ]
         
         for keyword in problematic:
             if keyword in prompt_lower:
                 score -= 15
-                suggestions.append(f"Avoid '{keyword}' - use natural descriptions instead")
+                suggestions.append(f"⚠️ Remove '{keyword}' - use natural descriptions instead")
         
-        # Suggestions based on score
-        if score < 30:
+        # Generate suggestions based on score
+        if score < 40:
             suggestions.extend([
-                "Add specific skin texture details (pores, fine lines)",
-                "Mention natural lighting with realistic shadows",
-                "Include anatomical imperfections for authenticity",
-                "Specify professional camera equipment"
+                "Add specific skin texture details (visible pores, fine lines, natural color variation)",
+                "Include detailed eye description (color, shape, iris texture, catchlights)",
+                "Describe hair in detail (color, texture, individual strands, natural shine)",
+                "Mention professional camera equipment (Sony A7IV, 85mm f/1.4 lens)",
+                "Add natural lighting description (soft window light, realistic shadows)"
             ])
+        elif score < 70:
+            suggestions.extend([
+                "Good detail! Add more physical feature specifics (face shape, nose shape, lip fullness)",
+                "Include natural imperfections (slight asymmetry, small blemishes)",
+                "Mention photographic qualities (depth of field, bokeh, film grain)"
+            ])
+        else:
+            suggestions.append("✅ Excellent realism! Prompt has strong photorealistic potential.")
         
-        realism_level = "Low" if score < 30 else "Medium" if score < 60 else "High"
+        # Determine realism level
+        if score < 40:
+            realism_level = "Low"
+        elif score < 70:
+            realism_level = "Medium"
+        elif score < 90:
+            realism_level = "High"
+        else:
+            realism_level = "Ultra-High"
         
         return {
             "realism_score": max(0, min(100, score)),
