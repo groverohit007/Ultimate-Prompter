@@ -121,14 +121,14 @@ tabs = st.tabs(["🎬 DrMotion Enhanced", "📋 Templates", "📊 Analytics", "�
 ######################
 with tabs[0]:
     st.header("🎬 DrMotion: Ultimate Video Prompt Engine")
-    
+
     # Mode selector
     mode = st.radio("Mode", ["🎯 Single Generation", "🔥 Batch Mode", "🛍️ Product Review"], horizontal=True)
     st.divider()
-    
+
     if mode == "🎯 Single Generation":
         img = st.file_uploader("Upload Character", type=["png","jpg","webp"], key="dm_img")
-        
+
         col1, col2, col3, col4 = st.columns(4)
         with col1:
             model_choice = st.selectbox("Video Model", ["Kling 1.5","Veo 2 / Sora","Luma Dream Machine","Runway Gen-3 Alpha","Minimax","Haiper"])
@@ -145,18 +145,18 @@ with tabs[0]:
                 emotion = st.selectbox("Emotion", EmotionEngine.get_all_emotions())
         with col4:
             intensity = st.select_slider("Intensity", ["Subtle","Medium","Strong"], value="Medium")
-        
+
         # Cultural Variation
         use_cultural = st.checkbox("Apply Cultural Variation", value=False)
         if use_cultural:
             culture = st.selectbox("Culture", CulturalVariations.get_available_cultures())
         else:
             culture = None
-        
+
         # Show Preview
         if not use_mixing:
             show_emotion_preview(emotion, intensity)
-        
+
         # Generate Button
         if img and st.button("🎬 Generate Ultra-Realistic Prompt", type="primary", use_container_width=True):
             with st.spinner("Generating..."):
@@ -167,44 +167,44 @@ with tabs[0]:
                     actual_emotion = primary_emotion
                 else:
                     actual_emotion = emotion
-                
+
                 dm_data = svc.drmotion_generate(img, model_choice, motion, actual_emotion, st.session_state.master_prompt, intensity)
-                
+
                 # Track analytics
                 analytics.track_generation("DrMotion", actual_emotion, motion, model_choice, intensity, 1, 0)
-            
+
             if dm_data:
                 st.success("✅ Generated!")
-                
+
                 # Show sections
                 with st.expander("📊 Analysis", expanded=False):
                     st.write(dm_data.get("character_analysis", ""))
                     st.write(dm_data.get("emotion_breakdown", ""))
-                
+
                 with st.expander("🎭 Details", expanded=True):
                     if "micro_expressions" in dm_data:
                         st.markdown("**Micro-Expressions:**")
                         for expr in dm_data["micro_expressions"]:
                             st.markdown(f"• {expr}")
-                    
+
                     if "body_language_cues" in dm_data:
                         st.markdown("**Body Language:**")
                         for cue in dm_data["body_language_cues"]:
                             st.markdown(f"• {cue}")
-                
+
                 st.divider()
-                
+
                 # Main Prompt
                 final_prompt = dm_data.get("final_video_prompt", "")
-                
+
                 # Add cultural context if selected
                 if use_cultural:
                     cultural_section = CulturalVariations.build_cultural_prompt_section(culture, actual_emotion)
                     final_prompt = f"{final_prompt}\n\n{cultural_section}"
-                
+
                 st.markdown("### 🎯 Final Video Prompt")
                 st.text_area("", value=final_prompt, height=300, key="dm_final")
-                
+
                 col_a, col_b, col_c = st.columns(3)
                 with col_a:
                     copy_button("📋 Copy Prompt", final_prompt, "dm")
@@ -216,14 +216,14 @@ with tabs[0]:
                     # Generate audio prompt
                     audio_prompt = AudioEmotionMapper.build_audio_prompt(actual_emotion)
                     copy_button("🎙️ Copy Audio Prompt", audio_prompt, "dm_audio")
-                
+
                 # Show negative and audio in expanders
                 with st.expander("🚫 Negative Prompt"):
                     st.text_area("", value=neg_prompt, height=150, key="neg_show")
-                
+
                 with st.expander("🎙️ Audio/Voice Prompt"):
                     st.text_area("", value=audio_prompt, height=200, key="audio_show")
-                
+
                 # Save Template Option
                 if st.button("💾 Save as Template"):
                     template_mgr.save_template(
@@ -237,55 +237,55 @@ with tabs[0]:
                         notes=f"Generated on {datetime.now().strftime('%Y-%m-%d')}"
                     )
                     st.success("Template saved!")
-    
+
     elif mode == "🔥 Batch Mode":
         st.info("Generate multiple variations at once!")
-        
+
         img = st.file_uploader("Upload Character", type=["png","jpg","webp"], key="batch_img")
-        
+
         batch_type = st.radio("Batch Type", ["Multiple Emotions", "Multiple Intensities", "Multiple Models"], horizontal=True)
-        
+
         if batch_type == "Multiple Emotions":
             selected_emotions = st.multiselect("Select Emotions (max 5)", EmotionEngine.get_all_emotions(), max_selections=5)
             intensity = st.select_slider("Intensity", ["Subtle","Medium","Strong"], value="Medium")
             variations = [{"emotion": e, "intensity": intensity} for e in selected_emotions]
-        
+
         elif batch_type == "Multiple Intensities":
             emotion = st.selectbox("Emotion", EmotionEngine.get_all_emotions(), key="batch_emo")
             variations = [{"emotion": emotion, "intensity": i} for i in ["Subtle","Medium","Strong"]]
-        
+
         else:  # Multiple Models
             emotion = st.selectbox("Emotion", EmotionEngine.get_all_emotions(), key="batch_emo2")
             selected_models = st.multiselect("Select Models", ["Kling 1.5","Veo 2 / Sora","Luma Dream Machine","Runway Gen-3 Alpha"], max_selections=4)
             variations = [{"model": m} for m in selected_models]
-        
+
         motion = st.selectbox("Motion", ["Walking Runway","Turning Head & Smiling","Drinking Coffee","Talking to Camera"], key="batch_motion")
-        
+
         if img and variations and st.button("🚀 Generate Batch", type="primary"):
             with st.spinner(f"Generating {len(variations)} variations..."):
                 results = []
                 progress_bar = st.progress(0)
-                
+
                 for i, var in enumerate(variations):
                     try:
                         emo = var.get("emotion", emotion)
                         intens = var.get("intensity", "Medium")
                         mod = var.get("model", "Kling 1.5")
-                        
+
                         result = svc.drmotion_generate(img, mod, motion, emo, st.session_state.master_prompt, intens)
                         result['variation'] = f"{emo} - {intens}" if batch_type != "Multiple Models" else mod
                         results.append(result)
-                        
+
                         analytics.track_generation("DrMotion Batch", emo, motion, mod, intens, 1, 0)
                     except Exception as e:
                         results.append({"error": str(e), "variation": f"Variation {i+1}"})
-                    
+
                     progress_bar.progress((i + 1) / len(variations))
-                
+
                 st.session_state.batch_results = results
-            
+
             st.success(f"✅ Generated {len(results)} variations!")
-            
+
             # Display results
             for i, result in enumerate(results):
                 if "error" in result:
@@ -295,12 +295,12 @@ with tabs[0]:
                         prompt = result.get("final_video_prompt", "")
                         st.text_area("", value=prompt, height=200, key=f"batch_{i}")
                         copy_button(f"📋 Copy {result['variation']}", prompt, f"batch_{i}")
-    
+
     else:  # Product Review
         st.info("Generate 16s Product Review with Script + 2 Clips")
-        
+
         img = st.file_uploader("Upload Product/Model", type=["png","jpg","webp"], key="pr_img")
-        
+
         col1, col2, col3 = st.columns(3)
         with col1:
             product = st.text_input("Product Details", "Vitamin C Serum - glowing skin")
@@ -308,38 +308,38 @@ with tabs[0]:
             language = st.selectbox("Language", ["Hinglish","Hindi","English","Spanish"])
         with col3:
             emotion = st.selectbox("Tone", EmotionEngine.get_all_emotions(), key="pr_emo")
-        
+
         intensity = st.select_slider("Intensity", ["Subtle","Medium","Strong"], value="Medium", key="pr_int")
-        
+
         if img and st.button("🎬 Generate Review Plan", type="primary"):
             with st.spinner("Creating review..."):
                 pr_data = svc.drmotion_product_review(img, product, language, emotion, st.session_state.master_prompt, intensity)
                 analytics.track_generation("Product Review", emotion, "Review", "", intensity, 1, 0)
-            
+
             if pr_data:
                 st.success("✅ Review Plan Ready!")
-                
+
                 st.markdown("### 📝 Script")
                 script = pr_data.get("script", "")
                 st.text_area("", value=script, height=100, key="pr_script")
                 copy_button("📋 Copy Script", script, "script")
-                
+
                 # Audio Prompt for Script
                 audio_for_script = AudioEmotionMapper.build_audio_prompt(emotion, script)
                 with st.expander("🎙️ Audio Prompt for Script"):
                     st.text_area("", value=audio_for_script, height=150, key="pr_audio")
                     copy_button("📋 Copy Audio", audio_for_script, "pr_audio")
-                
+
                 st.divider()
-                
+
                 col_a, col_b = st.columns(2)
-                
+
                 with col_a:
                     st.markdown("#### 1️⃣ Clip A (0-8s)")
                     prompt_a = pr_data.get("clip_1_visual_prompt", "")
                     st.text_area("", value=prompt_a, height=250, key="pr_a")
                     copy_button("📋 Copy Clip A", prompt_a, "a")
-                
+
                 with col_b:
                     st.markdown("#### 2️⃣ Clip B (8-16s)")
                     prompt_b = pr_data.get("clip_2_visual_prompt", "")
@@ -351,13 +351,13 @@ with tabs[0]:
 ######################
 with tabs[1]:
     st.header("📋 Template Library")
-    
+
     tab_a, tab_b = st.tabs(["Browse Templates", "Save New"])
-    
+
     with tab_a:
         # Search
         search_query = st.text_input("🔍 Search templates", "")
-        
+
         col1, col2, col3 = st.columns(3)
         with col1:
             filter_cat = st.selectbox("Category", ["All"] + template_mgr.get_all_categories())
@@ -365,7 +365,7 @@ with tabs[1]:
             filter_emotion = st.selectbox("Emotion", ["All"] + EmotionEngine.get_all_emotions())
         with col3:
             filter_tags = st.multiselect("Tags", template_mgr.get_all_tags())
-        
+
         # Search
         results = template_mgr.search_templates(
             query=search_query,
@@ -373,9 +373,9 @@ with tabs[1]:
             emotion=filter_emotion if filter_emotion != "All" else "",
             tags=filter_tags
         )
-        
+
         st.write(f"Found {len(results)} templates")
-        
+
         # Display
         for template in results:
             with st.expander(f"📄 {template['name']} ({template['usage_count']} uses)"):
@@ -384,7 +384,7 @@ with tabs[1]:
                 st.markdown(f"**Motion:** {template['motion']}")
                 st.markdown(f"**Tags:** {', '.join(template['tags'])}")
                 st.text_area("Prompt", value=template['prompt'], height=200, key=f"tpl_{template['id']}")
-                
+
                 col_x, col_y, col_z = st.columns(3)
                 with col_x:
                     copy_button("📋 Copy", template['prompt'], f"tpl_{template['id']}")
@@ -396,7 +396,7 @@ with tabs[1]:
                     if st.button("🗑️ Delete", key=f"del_{template['id']}"):
                         template_mgr.delete_template(template['id'])
                         st.rerun()
-        
+
         # Stats
         st.divider()
         stats = template_mgr.get_stats()
@@ -405,10 +405,10 @@ with tabs[1]:
         col2.metric("Total Uses", stats['total_usage'])
         if stats['most_used']:
             col3.metric("Most Used", stats['most_used']['name'])
-    
+
     with tab_b:
         st.markdown("### Save Current Prompt as Template")
-        
+
         tpl_name = st.text_input("Template Name", "My Awesome Prompt")
         tpl_prompt = st.text_area("Prompt", "", height=200)
         tpl_category = st.selectbox("Category", ["DrMotion", "Product Review", "Cloner", "Custom"])
@@ -416,7 +416,7 @@ with tabs[1]:
         tpl_motion = st.text_input("Motion Type", "")
         tpl_tags = st.text_input("Tags (comma-separated)", "")
         tpl_notes = st.text_area("Notes", "")
-        
+
         if st.button("💾 Save Template"):
             tags_list = [t.strip() for t in tpl_tags.split(",") if t.strip()]
             template_mgr.save_template(
@@ -435,18 +435,18 @@ with tabs[1]:
 ######################
 with tabs[2]:
     st.header("📊 Analytics Dashboard")
-    
+
     stats = analytics.get_dashboard_stats()
-    
+
     # Metrics
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Total Generations", stats['total_generations'])
     col2.metric("Avg Iterations", stats['avg_iterations'])
     col3.metric("Time Saved", f"{stats['time_saved_hours']} hours")
     col4.metric("Improvement", f"+{stats['improvement_rate']}%")
-    
+
     st.divider()
-    
+
     # Top stats
     col_a, col_b, col_c = st.columns(3)
     with col_a:
@@ -458,12 +458,12 @@ with tabs[2]:
     with col_c:
         st.markdown("### ⚡ Top Feature")
         st.info(stats['top_feature'])
-    
+
     st.divider()
-    
+
     # Breakdowns
     col1, col2 = st.columns(2)
-    
+
     with col1:
         st.markdown("### Emotions Used")
         if stats['emotions_breakdown']:
@@ -471,7 +471,7 @@ with tabs[2]:
                 st.write(f"{emotion}: {count}")
         else:
             st.info("No data yet - generate your first prompt!")
-    
+
     with col2:
         st.markdown("### Models Used")
         if stats['models_breakdown']:
@@ -479,15 +479,15 @@ with tabs[2]:
                 st.write(f"{model}: {count}")
         else:
             st.info("No data yet - generate your first prompt!")
-    
+
     st.divider()
-    
+
     # Recent Activity
     st.markdown("### Recent Activity")
     recent = analytics.get_recent_activity(10)
     for activity in recent:
         st.text(f"{activity['timestamp'][:19]} | {activity['feature']} | {activity['emotion']} | {activity['model']}")
-    
+
     # Reset
     if st.button("🔄 Reset Analytics"):
         analytics.reset_analytics()
@@ -500,12 +500,12 @@ with tabs[2]:
 with tabs[3]:
     st.header("🎨 Custom Emotion Designer")
     st.info("Create your own custom emotions by mixing base emotions or defining from scratch")
-    
+
     design_mode = st.radio("Mode", ["Mix Existing", "Define New"], horizontal=True)
-    
+
     if design_mode == "Mix Existing":
         st.markdown("### Emotion Mixer")
-        
+
         col1, col2 = st.columns(2)
         with col1:
             primary = st.selectbox("Primary Emotion", EmotionEngine.get_all_emotions(), key="mix_p")
@@ -513,19 +513,19 @@ with tabs[3]:
         with col2:
             secondary = st.selectbox("Secondary Emotion", EmotionEngine.get_all_emotions(), key="mix_s")
             st.metric("Secondary Weight", f"{round((1-primary_weight)*100)}%")
-        
+
         custom_name = st.text_input("Custom Emotion Name", f"Mixed: {primary} + {secondary}")
-        
+
         if st.button("🎨 Create Mixed Emotion"):
             mixed = EmotionEngine.mix_emotions(primary, secondary, primary_weight)
             st.session_state.custom_emotions[custom_name] = mixed
             st.success(f"Created: {custom_name}")
-            
+
             # Preview
             st.markdown("### Preview")
             st.markdown(f"**Description:** {mixed['description']}")
             st.markdown(f"**Mix Ratio:** {mixed['mix_ratio']}")
-            
+
             col_a, col_b = st.columns(2)
             with col_a:
                 st.markdown("**Micro-Expressions:**")
@@ -535,12 +535,12 @@ with tabs[3]:
                 st.markdown("**Body Language:**")
                 for body in mixed['body_language']:
                     st.markdown(f"• {body}")
-    
+
     else:
         st.markdown("### Define New Emotion")
         st.caption("Coming soon - full custom emotion builder")
         st.info("For now, use the Emotion Mixer to create custom combinations")
-    
+
     # Show Custom Emotions
     if st.session_state.custom_emotions:
         st.divider()
@@ -554,47 +554,47 @@ with tabs[3]:
 ######################
 with tabs[4]:
     st.header("📸 Professional Tools Suite")
-    
+
     tool = st.selectbox("Select Tool", [
         "🎯 Cloner + Ultra Realism",
-        "✨ PerfectCloner", 
-        "📐 Multi-Angle Grid", 
-        "👗 Digital Wardrobe", 
-        "✍️ Prompter Builder", 
-        "🕺 Poser", 
+        "✨ PerfectCloner",
+        "📐 Multi-Angle Grid",
+        "👗 Digital Wardrobe",
+        "✍️ Prompter Builder",
+        "🕺 Poser",
         "📝 Caption Generator"
     ])
-    
+
     # ========== CLONER + ULTRA REALISM ==========
     if tool == "🎯 Cloner + Ultra Realism":
         st.subheader("🎯 Scene Transfer: Your AI Model in Any Pose!")
         st.info("📸 Upload ANY reference photo → AI extracts the pose/lighting/scene → Creates prompt with YOUR AI model in that scene")
-        
+
         img = st.file_uploader("Upload Reference Image (any person)", type=["jpg","png","webp","jpeg"], key="clone_img")
-        
+
         col1, col2 = st.columns([2, 1])
         with col1:
             st.caption("💡 **Workflow**: Reference photo shows the pose/lighting you want → AI puts YOUR model (from Master DNA) in that same pose/lighting")
         with col2:
             realism_level = st.select_slider("Ultra Realism", ["Medium", "High", "Maximum"], value="High")
-        
+
         st.divider()
-        
+
         # CUSTOMIZATION OPTIONS
         st.markdown("### 🎨 Customize Your Model")
         st.caption("✅ Check to override | ⬜ Uncheck to use reference image")
-        
+
         col1, col2, col3 = st.columns(3)
-        
+
         with col1:
-            use_hairstyle = st.checkbox("✂️ Hairstyle", value=False, key="use_hair", 
+            use_hairstyle = st.checkbox("✂️ Hairstyle", value=False, key="use_hair",
                                        help="Check to specify hairstyle, uncheck to use reference")
-            hairstyle = st.text_input("Hairstyle (if checked)", 
+            hairstyle = st.text_input("Hairstyle (if checked)",
                                      value="",
                                      placeholder="long wavy blonde, short bob, etc.",
                                      key="hair_text",
                                      disabled=not use_hairstyle)
-        
+
         with col2:
             use_attire = st.checkbox("👗 Attire", value=False, key="use_attire",
                                     help="Check to specify outfit, uncheck to use reference")
@@ -603,7 +603,7 @@ with tabs[4]:
                                   placeholder="red dress, jeans and tshirt, etc.",
                                   key="attire_text",
                                   disabled=not use_attire)
-        
+
         with col3:
             use_makeup = st.checkbox("💄 Makeup", value=False, key="use_makeup",
                                     help="Check to specify makeup, uncheck to use reference")
@@ -612,14 +612,14 @@ with tabs[4]:
                                   placeholder="natural, smokey eyes, etc.",
                                   key="makeup_text",
                                   disabled=not use_makeup)
-        
+
         st.divider()
-        
+
         if img and st.button("🎯 Generate Scene Transfer Prompt", type="primary", use_container_width=True):
             with st.spinner("🔬 Analyzing scene (extracting pose, lighting, camera, background)..."):
                 # Call cloner with all parameters
                 data = svc.cloner_analyze_filelike(
-                    img, 
+                    img,
                     st.session_state.master_prompt,
                     use_custom_hairstyle=use_hairstyle,
                     custom_hairstyle=hairstyle if use_hairstyle else "",
@@ -628,28 +628,28 @@ with tabs[4]:
                     use_custom_makeup=use_makeup,
                     custom_makeup=makeup if use_makeup else ""
                 )
-            
+
             base_prompt = data.get("full_prompt", "")
             base_negative = data.get("negative_prompt", "")
-            
+
             # ALWAYS apply Ultra Realism
             with st.spinner("✨ Applying Ultra Realism enhancements..."):
                 enhanced_prompt = UltraRealismEngine.enhance_prompt(base_prompt, realism_level)
                 ultra_negative = UltraRealismEngine.get_negative_prompt()
-                
+
                 # Combine negatives
                 final_negative = f"{base_negative}, {ultra_negative}"
-            
+
             st.success("✅ Scene Transfer Prompt Ready! Your AI Model in Reference Pose!")
-            
+
             # Show metrics
             analysis = UltraRealismEngine.analyze_for_realism(base_prompt)
             col_a, col_b, col_c = st.columns(3)
-            col_a.metric("Realism Score", f"{analysis['realism_score']}/100", 
+            col_a.metric("Realism Score", f"{analysis['realism_score']}/100",
                         help="Higher = more photorealistic")
             col_b.metric("Realism Level", analysis['realism_level'])
             col_c.metric("Prompt Length", f"{len(enhanced_prompt.split())} words")
-            
+
             # Show what was applied
             if use_hairstyle or use_attire or use_makeup:
                 with st.expander("🎨 Your Customizations Applied"):
@@ -662,19 +662,19 @@ with tabs[4]:
                 st.caption("✅ These override the reference image | Unchecked items used reference")
             else:
                 st.info("ℹ️ All aspects (hairstyle, attire, makeup) taken from reference image")
-            
+
             if analysis['suggestions']:
                 with st.expander("💡 Realism Tips"):
                     for sugg in analysis['suggestions']:
                         st.write(f"• {sugg}")
-            
+
             st.divider()
-            
+
             # Main enhanced prompt
             st.markdown("### 🎯 FINAL ULTRA-REALISTIC PROMPT")
             st.caption("✅ Scene Transfer: YOUR AI Model + Reference Pose | ✅ Ultra Realism: Active | ✅ Body Structure (36D, 34): Included")
             st.text_area("Copy this entire prompt", value=enhanced_prompt, height=450, key="clone_final")
-            
+
             col_btn1, col_btn2 = st.columns(2)
             with col_btn1:
                 copy_button("📋 Copy Final Prompt", enhanced_prompt, "clone_final_btn")
@@ -688,39 +688,39 @@ with tabs[4]:
                         notes=f"Realism: {analysis['realism_score']}/100, Custom: {use_hairstyle or use_attire or use_makeup}"
                     )
                     st.success("✅ Saved!")
-            
+
             # Negative prompt
             st.divider()
             st.markdown("### 🚫 Negative Prompt")
             st.caption("⚠️ IMPORTANT: Paste this in your image generator's negative prompt field")
             st.text_area("Negative Prompt", value=final_negative, height=100, key="clone_neg")
             copy_button("📋 Copy Negative Prompt", final_negative, "clone_neg_btn")
-            
+
             # Base analysis for reference
             with st.expander("📄 Scene Analysis (What was extracted from reference)"):
                 st.caption("This shows what the AI extracted from your reference image")
                 st.text_area("Extracted Scene Details", value=base_prompt, height=300, key="clone_base")
-    
+
     # ========== PERFECT CLONER ==========
     elif tool == "✨ PerfectCloner":
         st.subheader("✨ PerfectCloner")
         st.caption("Precisely recreate an image with detailed schema analysis")
-        
+
         pimg = st.file_uploader("Upload Image to Recreate", type=["jpg","png","webp","jpeg"], key="pc_img")
         identity_lock = st.checkbox("🔒 Enable Identity Lock", value=True, help="Maintain character identity from Master DNA")
-        
+
         if pimg and st.button("🔬 Analyze Schema", type="primary"):
             with st.spinner("Performing detailed analysis..."):
                 data = svc.perfectcloner_analyze_filelike(pimg, st.session_state.master_prompt, identity_lock)
-            
+
             st.success("✅ Schema Analysis Complete!")
-            
+
             rec_prompt = data.get("recreation_prompt", "")
             neg_prompt = data.get("negative_prompt", "")
             notes = data.get("notes", "")
-            
+
             st.text_area("Recreation Prompt", value=rec_prompt, height=300, key="pc_rec")
-            
+
             col1, col2 = st.columns(2)
             with col1:
                 copy_button("📋 Copy Recreation Prompt", rec_prompt, "pc_rec_btn")
@@ -734,83 +734,83 @@ with tabs[4]:
                         notes=notes
                     )
                     st.success("Saved to Templates!")
-            
+
             with st.expander("📊 Full Analysis Data"):
                 st.json(data)
-    
+
     # ========== MULTI-ANGLE GRID ==========
     elif tool == "📐 Multi-Angle Grid":
         st.subheader("📐 Multi-Angle Character Sheet")
         st.caption("Generate 20 unique camera angles for your character")
-        
+
         ref_img = st.file_uploader("Upload Character Reference", type=["png","jpg","webp","jpeg"], key="mag_img")
-        
+
         if st.button("🔄 Reset", key="mag_reset_btn"):
             st.session_state.multi_angle_data = None
             st.rerun()
-        
+
         if ref_img and st.button("📊 Generate 20-Angle Plan", type="primary"):
             with st.spinner("Planning 20 unique angles..."):
                 plan = svc.multi_angle_planner_filelike(ref_img, st.session_state.master_prompt)
-            
+
             if plan:
                 st.session_state.multi_angle_data = plan
                 st.success("✅ 20-Angle Plan Generated!")
                 st.rerun()
-        
+
         # Show plan if exists
         if st.session_state.multi_angle_data:
             plan_data = st.session_state.multi_angle_data
-            
+
             st.divider()
             st.markdown("### Step 1: Generate Grid")
             st.text_area("Grid Generation Prompt", value=plan_data.get("grid_prompt",""), height=150, key="mag_grid")
             copy_button("📋 Copy Grid Prompt", plan_data.get("grid_prompt",""), "mag_grid_btn")
-            
+
             st.divider()
             st.markdown("### Step 2: Select Individual Angle")
-            
+
             angles_list = plan_data.get("angles", [])
             angle_options = [f"{a.get('id',0)}. {a.get('name','Unknown')}" for a in angles_list]
-            
+
             selected_option = st.selectbox("Choose Angle", angle_options, key="mag_select")
-            
+
             if selected_option:
                 idx = int(selected_option.split(".")[0]) - 1
                 if 0 <= idx < len(angles_list):
                     selected_angle = angles_list[idx]
-                    
+
                     st.success(f"Selected: **{selected_angle.get('name')}**")
-                    
+
                     # Generate physics-enhanced prompt
                     final_prompt = svc.build_physics_prompt(st.session_state.master_prompt, selected_angle)
-                    
+
                     st.text_area("Physics-Enhanced Prompt", value=final_prompt, height=250, key="mag_final")
                     copy_button("📋 Copy Angle Prompt", final_prompt, "mag_final_btn")
-    
+
     # ========== DIGITAL WARDROBE ==========
     elif tool == "👗 Digital Wardrobe":
         st.subheader("👗 Digital Wardrobe")
         st.caption("Fuse outfit from reference onto your character")
-        
+
         wardrobe_img = st.file_uploader("Upload Outfit Reference", type=["png","jpg","webp","jpeg"], key="wardrobe_img")
-        
+
         st.info("💡 Tip: Upload an image showing the outfit you want. The tool will extract the clothing and fuse it with your character.")
-        
+
         if wardrobe_img and st.button("🧵 Analyze & Wear Outfit", type="primary"):
             with st.spinner("Extracting outfit details and fusing with character..."):
                 w_data = svc.wardrobe_fuse_filelike(wardrobe_img, st.session_state.master_prompt)
-            
+
             st.success("✅ Outfit Fused!")
-            
+
             outfit_desc = w_data.get("outfit_description", "")
             fused_prompt = w_data.get("fused_prompt", "")
-            
+
             with st.expander("👔 Outfit Description"):
                 st.write(outfit_desc)
-            
+
             st.text_area("Final Prompt with Outfit", value=fused_prompt, height=300, key="wardrobe_final")
-            
+
             col1, col2 = st.columns(2)
             with col1:
                 copy_button("📋 Copy Wardrobe Prompt", fused_prompt, "wardrobe_btn")
@@ -824,30 +824,30 @@ with tabs[4]:
                         notes=f"Outfit: {outfit_desc[:100]}"
                     )
                     st.success("Saved!")
-    
+
     # ========== PROMPTER BUILDER ==========
     elif tool == "✍️ Prompter Builder":
         st.subheader("✍️ Prompter - Structured Prompt Builder")
         st.caption("Build professional prompts with dropdown selections")
-        
+
         col1, col2 = st.columns(2)
-        
+
         with col1:
             st.markdown("**Character & Pose**")
             pose = st.selectbox("Pose", ["Confident stance", "Sitting relaxed", "Walking toward camera", "Close-up portrait", "Action pose", "Casual lean"], key="p_pose")
             attire = st.selectbox("Attire", ["Professional suit", "Casual jeans and t-shirt", "Formal dress", "Business casual", "Athletic wear", "Traditional clothing"], key="p_attire")
             jewellery = st.selectbox("Accessories", ["Minimal jewelry", "Statement pieces", "Watch only", "None", "Traditional jewelry"], key="p_jewel")
-        
+
         with col2:
             st.markdown("**Environment & Technical**")
             lighting = st.selectbox("Lighting", ["Soft natural light", "Golden hour", "Studio softbox", "Dramatic side lighting", "Neon/urban", "Overcast natural"], key="p_light")
             camera_angle = st.selectbox("Camera Angle", ["Eye level", "Slightly low angle", "High angle", "Profile view", "Over-the-shoulder"], key="p_cam")
             background = st.selectbox("Background", ["Blurred studio", "Urban street", "Nature/outdoor", "Modern interior", "Minimalist solid color"], key="p_bg")
-        
+
         st.divider()
-        
+
         camera_lens = st.selectbox("Lens Choice", ["50mm f/1.8 (natural)", "85mm f/1.4 (portrait)", "35mm f/2 (environmental)", "24mm f/2.8 (wide)"], key="p_lens")
-        
+
         if st.button("🎨 Generate Structured Prompt", type="primary"):
             fields = {
                 "pose": pose,
@@ -858,12 +858,12 @@ with tabs[4]:
                 "background": background,
                 "jewellery": jewellery
             }
-            
+
             prompt = svc.prompter_build(st.session_state.master_prompt, fields)
-            
+
             st.success("✅ Structured Prompt Generated!")
             st.text_area("Generated Prompt", value=prompt, height=350, key="prompter_result")
-            
+
             col_a, col_b = st.columns(2)
             with col_a:
                 copy_button("📋 Copy Prompt", prompt, "prompter_btn")
@@ -877,54 +877,54 @@ with tabs[4]:
                         notes=f"Pose: {pose}, Lighting: {lighting}"
                     )
                     st.success("Saved!")
-    
+
     # ========== POSER ==========
     elif tool == "🕺 Poser":
         st.subheader("🕺 Poser - Pose Variation Generator")
         st.caption("Generate 5 pose variations from a reference")
-        
+
         poser_img = st.file_uploader("Upload Reference Pose", type=["jpg","png","webp","jpeg"], key="poser_img")
-        
+
         col1, col2 = st.columns(2)
         with col1:
             pose_style = st.selectbox("Style Direction", ["Casual & Natural", "Elegant & Graceful", "Edgy & Bold", "Professional & Composed", "Dynamic & Active"], key="poser_style")
         with col2:
             num_variations = st.slider("Number of Variations", 3, 7, 5, key="poser_num")
-        
+
         if poser_img and st.button("🎭 Generate Pose Variations", type="primary"):
             with st.spinner("Creating pose variations..."):
                 st.session_state.poser_data = svc.poser_variations_filelike(poser_img, st.session_state.master_prompt, pose_style)
-            
+
             st.success(f"✅ Generated {num_variations} Pose Variations!")
             st.rerun()
-        
+
         # Display variations
         if st.session_state.poser_data:
             data = st.session_state.poser_data
             prompts = data.get("prompts", [])[:num_variations]
             scene_lock = data.get("scene_lock", "")
-            
+
             st.divider()
             st.markdown("### Choose Your Variation")
-            
+
             # Create radio options
             variation_names = [p.get("pose_name", f"Pose {i+1}") for i, p in enumerate(prompts)]
             selected_variation = st.radio("Select Pose", variation_names, key="poser_select")
-            
+
             # Find selected variation
             for p in prompts:
                 if p.get("pose_name") == selected_variation:
                     st.success(f"**Selected:** {p.get('pose_name')}")
-                    
+
                     # Build full prompt
                     full_prompt = f"{st.session_state.master_prompt}\n\n"
                     full_prompt += f"POSE: {p.get('pose_name')}\n"
                     full_prompt += f"DESCRIPTION: {p.get('pose_description')}\n"
                     full_prompt += f"FACIAL EXPRESSION: {p.get('facial_expression')}\n\n"
                     full_prompt += f"SCENE CONSISTENCY: {scene_lock}"
-                    
+
                     st.text_area("Pose Prompt", value=full_prompt, height=250, key="poser_final")
-                    
+
                     col_x, col_y = st.columns(2)
                     with col_x:
                         copy_button("📋 Copy Pose Prompt", full_prompt, "poser_copy")
@@ -939,23 +939,23 @@ with tabs[4]:
                             )
                             st.success("Saved!")
                     break
-    
+
     # ========== CAPTION GENERATOR ==========
     elif tool == "📝 Caption Generator":
         st.subheader("📝 Instagram Caption Generator")
         st.caption("Generate engaging captions with hashtags")
-        
+
         cap_img = st.file_uploader("Upload Image", type=["jpg","png","webp","jpeg"], key="cap_img")
-        
+
         col1, col2 = st.columns(2)
         with col1:
             caption_style = st.selectbox("Caption Tone", ["Funny & Witty", "Serious & Professional", "Inspirational & Motivational", "Casual & Friendly", "Mysterious & Intriguing"], key="cap_style")
         with col2:
             caption_lang = st.selectbox("Language", ["English", "Hindi", "Hinglish", "Spanish"], key="cap_lang")
-        
+
         include_emojis = st.checkbox("Include Emojis", value=True)
         num_hashtags = st.slider("Number of Hashtags", 3, 10, 4, key="cap_hashtags")
-        
+
         if cap_img and st.button("✍️ Generate Caption", type="primary"):
             with st.spinner("Writing caption..."):
                 # Extract base style
@@ -967,29 +967,29 @@ with tabs[4]:
                     "Mysterious & Intriguing": "Mysterious"
                 }
                 base_style = style_map.get(caption_style, "Engaging")
-                
+
                 res = svc.captions_generate_filelike(cap_img, base_style, caption_lang)
-            
+
             st.success("✅ Caption Generated!")
-            
+
             caption_text = res.get("caption", "")
             hashtags_list = res.get("hashtags", [])[:num_hashtags]
-            
+
             # Show caption
             st.markdown("### 📱 Your Caption")
             st.text_area("Caption Text", value=caption_text, height=120, key="cap_text")
-            
+
             # Show hashtags
             st.markdown("### #️⃣ Hashtags")
             hashtags_str = " ".join(hashtags_list)
             st.text_input("Hashtags", value=hashtags_str, key="cap_hash_display")
-            
+
             # Combined output
             st.divider()
             st.markdown("### 📋 Complete Post")
             complete_post = f"{caption_text}\n\n{hashtags_str}"
             st.text_area("Copy entire post", value=complete_post, height=150, key="cap_complete")
-            
+
             copy_button("📋 Copy Complete Post", complete_post, "cap_copy")
 
 ######################
@@ -997,23 +997,23 @@ with tabs[4]:
 ######################
 with tabs[5]:
     st.header("⚙️ Configuration")
-    
+
     st.markdown("### Master DNA")
     st.session_state.master_prompt = st.text_area("", value=st.session_state.master_prompt, height=300)
-    
+
     st.divider()
-    
+
     st.markdown("### API Keys")
     st.caption("Add additional API keys for advanced features")
-    
+
     # Placeholder for additional APIs
     st.text_input("ElevenLabs API Key (for TTS)", type="password", help="Optional")
     st.text_input("Replicate API Key (for video analysis)", type="password", help="Optional")
-    
+
     st.divider()
-    
+
     st.markdown("### Export/Import")
-    
+
     col1, col2 = st.columns(2)
     with col1:
         if st.button("📥 Export Templates"):

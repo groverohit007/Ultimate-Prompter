@@ -18,12 +18,12 @@ class OpenAIService:
         self.model = model
 
     # -------------------- DR. MOTION (VIDEO) - ENHANCED --------------------
-    
-    def drmotion_generate(self, uploaded_file, model_choice: str, motion_type: str, 
+
+    def drmotion_generate(self, uploaded_file, model_choice: str, motion_type: str,
                          emotion: str, master_dna: str, intensity: str = "Medium") -> Dict[str, Any]:
         """
         Enhanced single-clip generation with deep Emotion Engine integration.
-        
+
         Args:
             uploaded_file: Image file
             model_choice: Video AI model (Kling, Veo, Luma, Runway)
@@ -33,7 +33,7 @@ class OpenAIService:
             intensity: Emotion intensity (Subtle, Medium, Strong)
         """
         data_url = self._filelike_to_data_url(uploaded_file)
-        
+
         # Model-specific guidance
         model_guides = {
             "Kling 1.5": "Kling excels at: High detail textures, smooth camera movements, realistic cloth physics. Use descriptors: '8k quality', 'cinematic camera orbit', 'photorealistic skin texture', 'dynamic lighting shifts'.",
@@ -44,11 +44,11 @@ class OpenAIService:
             "Haiper": "Haiper strong at: Quick iterations, style variety, artistic motion. Use descriptors: 'creative movement', 'artistic interpretation', 'varied styles', 'expressive motion'."
         }
         guide = model_guides.get(model_choice, "Focus on realistic motion, natural physics, and authentic emotions.")
-        
+
         # Get emotion breakdown from EmotionEngine
         emotion_prompt_section = EmotionEngine.build_emotion_prompt_section(emotion, intensity)
         motion_specific_cues = EmotionEngine.get_motion_specific_cues(motion_type, emotion)
-        
+
         instructions = (
             f"You are Dr. Motion, an AI Video Prompt Specialist for {model_choice}.\n\n"
             f"MODEL OPTIMIZATION:\n{guide}\n\n"
@@ -93,7 +93,7 @@ class OpenAIService:
             "  'final_video_prompt': 'The complete, detailed prompt for the AI video model'\n"
             "}\n"
         )
-        
+
         user_text = (
             f"MASTER CHARACTER DNA:\n{master_dna}\n\n"
             f"VIDEO MODEL: {model_choice}\n"
@@ -108,27 +108,27 @@ class OpenAIService:
             "Make the human feel ALIVE and REAL.\n"
             "Return JSON as specified above."
         )
-        
+
         messages = [
             {"role": "system", "content": instructions},
             {"role": "user", "content": [
-                {"type": "text", "text": user_text}, 
+                {"type": "text", "text": user_text},
                 {"type": "image_url", "image_url": {"url": data_url}}
             ]},
         ]
         return self._call_chat_json(messages, max_tokens=2500)
 
-    def drmotion_product_review(self, uploaded_file, product_info: str, language: str, 
+    def drmotion_product_review(self, uploaded_file, product_info: str, language: str,
                                emotion: str, master_dna: str, intensity: str = "Medium") -> Dict[str, Any]:
         """
         Enhanced 2-part product review sequence with emotion engine integration.
         Generates realistic script + visual prompts with authentic human behavior.
         """
         data_url = self._filelike_to_data_url(uploaded_file)
-        
+
         # Get emotion details
         emotion_prompt_section = EmotionEngine.build_emotion_prompt_section(emotion, intensity)
-        
+
         instructions = (
             "You are a Director of AI-Generated Product Reviews.\n"
             "Create a cohesive 16-second product review split into TWO 8-second clips.\n\n"
@@ -221,8 +221,8 @@ class OpenAIService:
     # -------------------- MULTI-ANGLE GRID PLANNER --------------------
     def multi_angle_planner_filelike(self, uploaded_file, master_dna: str) -> Dict[str, Any]:
         data_url = self._filelike_to_data_url(uploaded_file)
-        safe_dna_snippet = (master_dna or "")[:200] 
-        
+        safe_dna_snippet = (master_dna or "")[:200]
+
         instructions = (
             "You are an expert Virtual Photography Director.\n"
             "Task: Design a 'Multi-Angle Character Sheet' (4x5 grid, 20 slots).\n"
@@ -283,7 +283,7 @@ class OpenAIService:
         return {"caption": data.get("caption", ""), "hashtags": hashtags}
 
     # -------------------- CLONER --------------------
-def cloner_analyze_filelike(self, uploaded_file, master_dna: str,
+    def cloner_analyze_filelike(self, uploaded_file, master_dna: str,
                                 use_custom_hairstyle: bool = False,
                                 custom_hairstyle: str = "",
                                 use_custom_attire: bool = False,
@@ -292,7 +292,7 @@ def cloner_analyze_filelike(self, uploaded_file, master_dna: str,
                                 custom_makeup: str = "") -> Dict[str, Any]:
         """
         SCENE TRANSFER CLONER - Extract scene from reference, apply to YOUR AI model.
-        
+
         User's Workflow:
         1. Upload reference image (different person)
         2. AI extracts: pose, lighting, camera angle, background
@@ -300,7 +300,7 @@ def cloner_analyze_filelike(self, uploaded_file, master_dna: str,
         4. Optional: Override hairstyle, attire, makeup
         5. Includes body structure (36D, 34)
         6. Ready for Ultra Realism
-        
+
         Args:
             uploaded_file: Reference image (scene to extract)
             master_dna: YOUR AI model's face/identity
@@ -312,26 +312,26 @@ def cloner_analyze_filelike(self, uploaded_file, master_dna: str,
             custom_makeup: Makeup description to use
         """
         data_url = self._filelike_to_data_url(uploaded_file)
-        
+
         # Build override instructions
         override_instructions = []
         if use_custom_hairstyle and custom_hairstyle:
             override_instructions.append(f"HAIRSTYLE: Use '{custom_hairstyle}' instead of reference hairstyle")
         else:
             override_instructions.append("HAIRSTYLE: Extract from reference image")
-        
+
         if use_custom_attire and custom_attire:
             override_instructions.append(f"ATTIRE: Use '{custom_attire}' instead of reference attire")
         else:
             override_instructions.append("ATTIRE: Extract from reference image")
-        
+
         if use_custom_makeup and custom_makeup:
             override_instructions.append(f"MAKEUP: Use '{custom_makeup}' instead of reference makeup")
         else:
             override_instructions.append("MAKEUP: Extract from reference image")
-        
+
         override_text = "\n".join(override_instructions)
-        
+
         instructions = f"""SCENE TRANSFER AI - Extract scene, NOT person!
 
     CRITICAL UNDERSTANDING:
@@ -339,7 +339,7 @@ def cloner_analyze_filelike(self, uploaded_file, master_dna: str,
 
     DO NOT EXTRACT OR DESCRIBE:
     ❌ Reference person's face shape
-    ❌ Reference person's eye color  
+    ❌ Reference person's eye color
     ❌ Reference person's skin tone
     ❌ Reference person's nose/lips
     ❌ Reference person's body measurements
@@ -453,7 +453,7 @@ def cloner_analyze_filelike(self, uploaded_file, master_dna: str,
     Analyze this image and extract ONLY:
     - Exact pose and body position
     - Exact lighting setup
-    - Exact camera angle and framing  
+    - Exact camera angle and framing
     - Background/environment
     - Hairstyle (if not overridden)
     - Attire (if not overridden)
@@ -473,7 +473,7 @@ def cloner_analyze_filelike(self, uploaded_file, master_dna: str,
                 {"type": "image_url", "image_url": {"url": data_url}}
             ]},
         ]
-        
+
         return self._call_chat_json(messages, max_tokens=2500)
 
 
@@ -539,7 +539,7 @@ def cloner_analyze_filelike(self, uploaded_file, master_dna: str,
             )
             return json.loads(self._sanitize_json_text(resp.choices[0].message.content))
         except Exception as e:
-            print(f"❌ OPENAI ERROR: {e}") 
+            print(f"❌ OPENAI ERROR: {e}")
             if hasattr(e, 'response'):
                 print(f"Response: {e.response}")
             return {}
