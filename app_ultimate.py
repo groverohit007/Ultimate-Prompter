@@ -567,71 +567,139 @@ with tabs[4]:
     
     # ========== CLONER + ULTRA REALISM ==========
     if tool == "🎯 Cloner + Ultra Realism":
-        st.subheader("🎯 Cloner + Ultra Realism Engine")
-        st.info("Clone a scene with photorealistic enhancements for images that look like real people")
+        st.subheader("🎯 Scene Transfer: Your AI Model in Any Pose!")
+        st.info("📸 Upload ANY reference photo → AI extracts the pose/lighting/scene → Creates prompt with YOUR AI model in that scene")
         
-        img = st.file_uploader("Upload Reference Image", type=["jpg","png","webp","jpeg"], key="clone_img")
+        img = st.file_uploader("Upload Reference Image (any person)", type=["jpg","png","webp","jpeg"], key="clone_img")
         
-        col1, col2 = st.columns(2)
+        col1, col2 = st.columns([2, 1])
         with col1:
-            use_ultra_realism = st.checkbox("✨ Enable Ultra Realism Engine", value=True, help="Add photorealistic enhancements")
+            st.caption("💡 **Workflow**: Reference photo shows the pose/lighting you want → AI puts YOUR model (from Master DNA) in that same pose/lighting")
         with col2:
-            if use_ultra_realism:
-                realism_level = st.select_slider("Realism Level", ["Medium", "High", "Maximum"], value="High")
-            else:
-                realism_level = None
+            realism_level = st.select_slider("Ultra Realism", ["Medium", "High", "Maximum"], value="High")
         
-        if use_ultra_realism:
-            st.caption("Ultra Realism adds: Natural skin texture, realistic lighting, authentic imperfections, professional camera simulation")
+        st.divider()
         
-        if img and st.button("🔍 Analyze & Clone", type="primary"):
-            with st.spinner("Analyzing scene and applying Master DNA..."):
-                data = svc.cloner_analyze_filelike(img, st.session_state.master_prompt)
+        # CUSTOMIZATION OPTIONS
+        st.markdown("### 🎨 Customize Your Model")
+        st.caption("✅ Check to override | ⬜ Uncheck to use reference image")
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            use_hairstyle = st.checkbox("✂️ Hairstyle", value=False, key="use_hair", 
+                                       help="Check to specify hairstyle, uncheck to use reference")
+            hairstyle = st.text_input("Hairstyle (if checked)", 
+                                     value="",
+                                     placeholder="long wavy blonde, short bob, etc.",
+                                     key="hair_text",
+                                     disabled=not use_hairstyle)
+        
+        with col2:
+            use_attire = st.checkbox("👗 Attire", value=False, key="use_attire",
+                                    help="Check to specify outfit, uncheck to use reference")
+            attire = st.text_input("Attire (if checked)",
+                                  value="",
+                                  placeholder="red dress, jeans and tshirt, etc.",
+                                  key="attire_text",
+                                  disabled=not use_attire)
+        
+        with col3:
+            use_makeup = st.checkbox("💄 Makeup", value=False, key="use_makeup",
+                                    help="Check to specify makeup, uncheck to use reference")
+            makeup = st.text_input("Makeup (if checked)",
+                                  value="",
+                                  placeholder="natural, smokey eyes, etc.",
+                                  key="makeup_text",
+                                  disabled=not use_makeup)
+        
+        st.divider()
+        
+        if img and st.button("🎯 Generate Scene Transfer Prompt", type="primary", use_container_width=True):
+            with st.spinner("🔬 Analyzing scene (extracting pose, lighting, camera, background)..."):
+                # Call cloner with all parameters
+                data = svc.cloner_analyze_filelike(
+                    img, 
+                    st.session_state.master_prompt,
+                    use_custom_hairstyle=use_hairstyle,
+                    custom_hairstyle=hairstyle if use_hairstyle else "",
+                    use_custom_attire=use_attire,
+                    custom_attire=attire if use_attire else "",
+                    use_custom_makeup=use_makeup,
+                    custom_makeup=makeup if use_makeup else ""
+                )
             
             base_prompt = data.get("full_prompt", "")
+            base_negative = data.get("negative_prompt", "")
             
-            # Apply Ultra Realism if enabled
-            if use_ultra_realism:
-                from ultra_realism_engine import UltraRealismEngine
+            # ALWAYS apply Ultra Realism
+            with st.spinner("✨ Applying Ultra Realism enhancements..."):
+                enhanced_prompt = UltraRealismEngine.enhance_prompt(base_prompt, realism_level)
+                ultra_negative = UltraRealismEngine.get_negative_prompt()
                 
-                with st.spinner("Applying Ultra Realism enhancements..."):
-                    enhanced_prompt = UltraRealismEngine.enhance_prompt(base_prompt, realism_level)
-                    negative_prompt = UltraRealismEngine.get_negative_prompt()
-                
-                st.success("✅ Ultra-Realistic Prompt Generated!")
-                
-                # Show realism analysis
-                analysis = UltraRealismEngine.analyze_for_realism(base_prompt)
-                col_a, col_b = st.columns(2)
-                col_a.metric("Realism Score", f"{analysis['realism_score']}/100")
-                col_b.metric("Level", analysis['realism_level'])
-                
-                if analysis['suggestions']:
-                    with st.expander("💡 Realism Suggestions"):
-                        for sugg in analysis['suggestions']:
-                            st.write(f"• {sugg}")
-                
-                st.divider()
-                
-                # Main prompt
-                st.markdown("### 🎯 Enhanced Prompt (With Ultra Realism)")
-                st.text_area("Copy this to your image generator", value=enhanced_prompt, height=400, key="clone_enhanced")
-                copy_button("📋 Copy Enhanced Prompt", enhanced_prompt, "clone_enh")
-                
-                # Negative prompt
-                st.markdown("### 🚫 Negative Prompt (For Ultra Realism)")
-                st.text_area("Paste this in negative prompt field", value=negative_prompt, height=100, key="clone_neg")
-                copy_button("📋 Copy Negative Prompt", negative_prompt, "clone_neg_btn")
-                
-                # Show base prompt for comparison
-                with st.expander("📄 Base Prompt (Without Ultra Realism)"):
-                    st.text_area("", value=base_prompt, height=200, key="clone_base")
+                # Combine negatives
+                final_negative = f"{base_negative}, {ultra_negative}"
             
+            st.success("✅ Scene Transfer Prompt Ready! Your AI Model in Reference Pose!")
+            
+            # Show metrics
+            analysis = UltraRealismEngine.analyze_for_realism(base_prompt)
+            col_a, col_b, col_c = st.columns(3)
+            col_a.metric("Realism Score", f"{analysis['realism_score']}/100", 
+                        help="Higher = more photorealistic")
+            col_b.metric("Realism Level", analysis['realism_level'])
+            col_c.metric("Prompt Length", f"{len(enhanced_prompt.split())} words")
+            
+            # Show what was applied
+            if use_hairstyle or use_attire or use_makeup:
+                with st.expander("🎨 Your Customizations Applied"):
+                    if use_hairstyle:
+                        st.success(f"✂️ Hairstyle: {hairstyle}")
+                    if use_attire:
+                        st.success(f"👗 Attire: {attire}")
+                    if use_makeup:
+                        st.success(f"💄 Makeup: {makeup}")
+                st.caption("✅ These override the reference image | Unchecked items used reference")
             else:
-                # Standard cloner without ultra realism
-                st.success("✅ Standard Clone Generated!")
-                st.text_area("Cloned Prompt", value=base_prompt, height=300, key="clone_std")
-                copy_button("📋 Copy Prompt", base_prompt, "clone_std_btn")
+                st.info("ℹ️ All aspects (hairstyle, attire, makeup) taken from reference image")
+            
+            if analysis['suggestions']:
+                with st.expander("💡 Realism Tips"):
+                    for sugg in analysis['suggestions']:
+                        st.write(f"• {sugg}")
+            
+            st.divider()
+            
+            # Main enhanced prompt
+            st.markdown("### 🎯 FINAL ULTRA-REALISTIC PROMPT")
+            st.caption("✅ Scene Transfer: YOUR AI Model + Reference Pose | ✅ Ultra Realism: Active | ✅ Body Structure (36D, 34): Included")
+            st.text_area("Copy this entire prompt", value=enhanced_prompt, height=450, key="clone_final")
+            
+            col_btn1, col_btn2 = st.columns(2)
+            with col_btn1:
+                copy_button("📋 Copy Final Prompt", enhanced_prompt, "clone_final_btn")
+            with col_btn2:
+                if st.button("💾 Save as Template"):
+                    template_mgr.save_template(
+                        name=f"Scene Transfer - {datetime.now().strftime('%Y%m%d_%H%M')}",
+                        prompt=enhanced_prompt,
+                        category="Scene Transfer",
+                        tags=["ultra_realism", "scene_transfer", f"score_{analysis['realism_score']}"],
+                        notes=f"Realism: {analysis['realism_score']}/100, Custom: {use_hairstyle or use_attire or use_makeup}"
+                    )
+                    st.success("✅ Saved!")
+            
+            # Negative prompt
+            st.divider()
+            st.markdown("### 🚫 Negative Prompt")
+            st.caption("⚠️ IMPORTANT: Paste this in your image generator's negative prompt field")
+            st.text_area("Negative Prompt", value=final_negative, height=100, key="clone_neg")
+            copy_button("📋 Copy Negative Prompt", final_negative, "clone_neg_btn")
+            
+            # Base analysis for reference
+            with st.expander("📄 Scene Analysis (What was extracted from reference)"):
+                st.caption("This shows what the AI extracted from your reference image")
+                st.text_area("Extracted Scene Details", value=base_prompt, height=300, key="clone_base")
     
     # ========== PERFECT CLONER ==========
     elif tool == "✨ PerfectCloner":

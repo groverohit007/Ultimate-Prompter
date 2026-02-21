@@ -283,139 +283,200 @@ class OpenAIService:
         return {"caption": data.get("caption", ""), "hashtags": hashtags}
 
     # -------------------- CLONER --------------------
-    def cloner_analyze_filelike(self, uploaded_file, master_dna: str) -> Dict[str, Any]:
+def cloner_analyze_filelike(self, uploaded_file, master_dna: str,
+                                use_custom_hairstyle: bool = False,
+                                custom_hairstyle: str = "",
+                                use_custom_attire: bool = False,
+                                custom_attire: str = "",
+                                use_custom_makeup: bool = False,
+                                custom_makeup: str = "") -> Dict[str, Any]:
         """
-        ENHANCED ULTRA CLONER - Extracts detailed person features for accurate recreation.
-        Designed for high realism scores (80-95/100) and close image matching.
+        SCENE TRANSFER CLONER - Extract scene from reference, apply to YOUR AI model.
+        
+        User's Workflow:
+        1. Upload reference image (different person)
+        2. AI extracts: pose, lighting, camera angle, background
+        3. Creates prompt with YOUR AI model in that scene
+        4. Optional: Override hairstyle, attire, makeup
+        5. Includes body structure (36D, 34)
+        6. Ready for Ultra Realism
+        
+        Args:
+            uploaded_file: Reference image (scene to extract)
+            master_dna: YOUR AI model's face/identity
+            use_custom_hairstyle: If True, use custom_hairstyle
+            custom_hairstyle: Hairstyle description to use
+            use_custom_attire: If True, use custom_attire
+            custom_attire: Attire description to use
+            use_custom_makeup: If True, use custom_makeup
+            custom_makeup: Makeup description to use
         """
         data_url = self._filelike_to_data_url(uploaded_file)
         
-        instructions = """You are an expert at analyzing portrait photographs for ultra-realistic AI recreation.
+        # Build override instructions
+        override_instructions = []
+        if use_custom_hairstyle and custom_hairstyle:
+            override_instructions.append(f"HAIRSTYLE: Use '{custom_hairstyle}' instead of reference hairstyle")
+        else:
+            override_instructions.append("HAIRSTYLE: Extract from reference image")
+        
+        if use_custom_attire and custom_attire:
+            override_instructions.append(f"ATTIRE: Use '{custom_attire}' instead of reference attire")
+        else:
+            override_instructions.append("ATTIRE: Extract from reference image")
+        
+        if use_custom_makeup and custom_makeup:
+            override_instructions.append(f"MAKEUP: Use '{custom_makeup}' instead of reference makeup")
+        else:
+            override_instructions.append("MAKEUP: Extract from reference image")
+        
+        override_text = "\n".join(override_instructions)
+        
+        instructions = f"""SCENE TRANSFER AI - Extract scene, NOT person!
 
-CRITICAL: Extract MAXIMUM DETAIL about the person to enable near-perfect recreation.
+    CRITICAL UNDERSTANDING:
+    The person in the reference image is NOT who we're creating. We only want the SCENE (pose, lighting, camera, background). We'll place a DIFFERENT person (from Master DNA) into this scene.
 
-Analyze and describe in extreme detail:
+    DO NOT EXTRACT OR DESCRIBE:
+    ❌ Reference person's face shape
+    ❌ Reference person's eye color  
+    ❌ Reference person's skin tone
+    ❌ Reference person's nose/lips
+    ❌ Reference person's body measurements
+    ❌ ANY identity features of reference person
 
-1. FACIAL STRUCTURE (Be specific!):
-   - Face shape (oval, round, square, heart, diamond, oblong)
-   - Jaw definition and angle
-   - Cheekbone prominence and placement
-   - Forehead size and shape
-   - Chin shape (pointed, rounded, square, cleft)
-   - Overall facial proportions and symmetry
+    ONLY EXTRACT THESE FROM REFERENCE:
 
-2. EYES (Critical for recreation!):
-   - Eye shape (almond, round, hooded, upturned, downturned)
-   - Eye color (be very specific: hazel with green flecks, deep brown, steel blue)
-   - Eye size relative to face
-   - Eyelid characteristics (single, double, monolid)
-   - Eyebrow shape, thickness, arch, color
-   - Distance between eyes
-   - Eyelash length and density
+    1. EXACT POSE & BODY POSITION:
+       - Body orientation (facing camera, 3/4 turn, profile, back)
+       - Standing/sitting/lying position
+       - Head tilt (straight, tilted left/right, up/down)
+       - Shoulder position
+       - Arm positions (both arms separately: raised, lowered, bent, straight, crossed)
+       - Hand positions and gestures
+       - Leg positions if visible
+       - Weight distribution
+       - Overall posture (confident, relaxed, elegant, dynamic)
 
-3. NOSE:
-   - Nose shape (straight, button, Roman, snub, aquiline)
-   - Nose bridge width and height
-   - Nostril size and shape
-   - Tip shape (rounded, pointed, bulbous)
+    2. FACIAL EXPRESSION & GAZE:
+       - Expression (smiling, serious, neutral, playful, mysterious)
+       - Smile type if smiling (closed, open, slight, broad)
+       - Eye gaze direction (at camera, away, down, up, to side)
+       - Face angle (straight, slight turn left/right)
 
-4. MOUTH & LIPS:
-   - Lip fullness (thin, medium, full, very full)
-   - Lip shape (cupid's bow prominent?, symmetry)
-   - Mouth width relative to face
-   - Lip color (natural pink, rosy, darker)
-   - Smile characteristics if smiling
+    3. LIGHTING SETUP (DETAILED):
+       - Main light position (front, left, right, top, back)
+       - Light quality (soft/diffused, hard/direct)
+       - Light type (natural window, studio softbox, outdoor sun, artificial)
+       - Shadow direction and softness
+       - Highlight areas on face/body
+       - Fill light (yes/no, from where)
+       - Rim/back light (yes/no)
+       - Overall lighting mood (bright, moody, dramatic, natural)
+       - Light color temperature (warm/golden, cool/blue, neutral)
 
-5. SKIN (Ultra-important for realism!):
-   - Skin tone (be specific: fair with warm undertones, olive, tan, deep brown, etc.)
-   - Skin texture (smooth, visible pores, fine lines, freckles, moles)
-   - Any distinctive features (beauty marks, freckles pattern, scars)
-   - Skin condition (matte, slightly oily, dewy)
-   - Under-eye area characteristics
+    4. CAMERA DETAILS:
+       - Camera angle (eye level, high angle looking down, low angle looking up)
+       - Shot type (extreme close-up face, close-up, medium shot, full body, wide)
+       - Camera distance from subject
+       - Focal length (estimate: wide 24-35mm, standard 50mm, portrait 85mm, telephoto 100mm+)
+       - Depth of field (very shallow/f1.4, shallow/f2.8, medium/f5.6, deep/f8+)
+       - Background blur amount
+       - Framing composition (centered, rule of thirds, off-center)
 
-6. HAIR (Maximum detail!):
-   - Hair color (exact shade: golden blonde, ash brown, jet black, auburn)
-   - Hair texture (straight, wavy, curly, coily - be specific about curl pattern)
-   - Hair length and style
-   - Hair density (thick, medium, fine)
-   - Hairline shape
-   - Any highlights, lowlights, or color variation
-   - Hair condition (glossy, matte, natural shine)
+    5. BACKGROUND & ENVIRONMENT:
+       - Background type (studio, outdoor, indoor, urban, nature)
+       - Background color/tones
+       - Background elements visible
+       - Background blur/sharpness
+       - Environmental mood
 
-7. FACIAL HAIR (if present):
-   - Type (stubble, beard, mustache, goatee)
-   - Density and color
-   - Style and shape
+    6. PHOTO STYLE:
+       - Overall style (portrait, fashion, editorial, casual, professional)
+       - Color grading (natural, warm tones, cool tones, desaturated, vibrant)
+       - Mood (cheerful, serious, dramatic, intimate, energetic)
+       - Professional quality indicators
 
-8. POSE & EXPRESSION:
-   - Head angle and tilt
-   - Body position
-   - Facial expression (neutral, smiling, serious)
-   - Eye gaze direction
+    7. HAIRSTYLE:
+    {override_instructions[0]}
 
-9. LIGHTING & PHOTOGRAPHY:
-   - Light source position and type
-   - Shadow characteristics
-   - Skin highlight areas
-   - Overall mood of lighting
-   - Catchlights in eyes
+    8. ATTIRE/CLOTHING:
+    {override_instructions[1]}
 
-10. CAMERA & TECHNICAL:
-    - Camera angle (eye level, slightly below, above)
-    - Focal length estimate (portrait lens, wide)
-    - Depth of field (background blur)
-    - Distance from subject
+    9. MAKEUP:
+    {override_instructions[2]}
 
-11. BACKGROUND & ENVIRONMENT:
-    - Background type and color
-    - Environment context
+    BODY STRUCTURE FOR PROMPT:
+    Include tasteful feminine body: 36D bust, 34 inch bottoms, naturally proportioned, elegant figure. Describe how pose/attire shows this naturally.
 
-12. CLOTHING & ACCESSORIES (visible):
-    - Visible clothing
-    - Jewelry or accessories
-    - Style/fashion
+    REALISM KEYWORDS (MUST INCLUDE ALL):
+    - "natural skin texture with visible pores and fine lines"
+    - "realistic lighting with natural shadows and highlights"
+    - "photorealistic, looks like real person"
+    - "8k quality, high detail, professional photography"
+    - "shot on Sony A7IV with 85mm f/1.4 lens"
+    - "natural depth of field with realistic bokeh"
+    - "realistic subsurface scattering on skin"
+    - "authentic human features with natural imperfections"
+    - "individual hair strands visible with natural flow"
+    - "professional color grading, natural tones"
+    - "realistic anatomy and proportions"
 
-REALISM KEYWORDS TO INCLUDE:
-Always include these terms for high realism scores:
-- "natural skin texture with visible pores"
-- "realistic lighting with natural shadows"
-- "photorealistic"
-- "8k quality"
-- "professional photography"
-- "natural depth of field"
-- "realistic subsurface scattering"
-- "authentic human features"
-- "natural imperfections"
-- "shot on professional camera"
+    OUTPUT JSON:
+    {{
+      "full_prompt": "Complete prompt with: [1] Master DNA identity/face, [2] Body structure (36D, 34), [3] Exact pose from reference, [4] Exact lighting from reference, [5] Exact camera setup, [6] Hairstyle (custom or extracted), [7] Attire (custom or extracted), [8] Makeup (custom or extracted), [9] Background from reference, [10] ALL realism keywords. MINIMUM 500 WORDS. Ultra-detailed.",
+      "negative_prompt": "different person, wrong identity, wrong face, smooth plastic skin, airbrushed, perfect skin, unrealistic, CGI, 3D render, cartoon, illustration, wrong pose, different lighting, different angle"
+    }}
 
-Return ONLY valid JSON with these keys:
-{
-  "full_prompt": "Extremely detailed description combining ALL analysis above with Master DNA. Include ALL realism keywords. 500+ words minimum.",
-  "negative_prompt": "smooth skin, plastic skin, airbrushed, perfect symmetry, unrealistic, CGI, 3D render, cartoon, illustration, fake"
-}
+    PROMPT STRUCTURE:
+    1. Start with Master DNA identity (YOUR AI model's face description)
+    2. Add body structure (36D, 34, tasteful, natural)
+    3. Describe exact pose from reference (ultra-detailed)
+    4. Describe exact lighting setup
+    5. Describe exact camera angle/framing
+    6. Add hairstyle (custom or extracted)
+    7. Add attire details (custom or extracted)
+    8. Add makeup (custom or extracted)
+    9. Add background/environment
+    10. Add ALL realism keywords
+    11. End with technical specs
 
-Be EXTREMELY detailed in full_prompt. The more specific you are about facial features, the better the recreation will be."""
+    Make it 500+ words, ultra-detailed!"""
 
-        user_text = f"""MASTER DNA (Character Identity - Merge this with your visual analysis):
-{master_dna}
+        user_text = f"""YOUR AI MODEL (Use this identity/face):
+    {master_dna}
 
-TASK: Analyze this person in EXTREME DETAIL and create a comprehensive prompt that will recreate this EXACT person as closely as possible. Extract every visible detail about their appearance.
+    BODY STRUCTURE TO USE:
+    Tasteful feminine body with 36D bust, 34 inch bottom measurements, naturally proportioned, elegant figure, realistic anatomy.
 
-Focus on: Face shape, eye characteristics, nose shape, lip details, skin tone and texture, hair color and style, distinctive features, and photographic qualities.
+    REFERENCE IMAGE (Extract SCENE only):
+    Analyze this image and extract ONLY:
+    - Exact pose and body position
+    - Exact lighting setup
+    - Exact camera angle and framing  
+    - Background/environment
+    - Hairstyle (if not overridden)
+    - Attire (if not overridden)
+    - Makeup (if not overridden)
 
-Include ALL realism keywords in your prompt for maximum photorealism."""
+    OVERRIDES:
+    {override_text}
+
+    DO NOT extract or describe the reference person's facial features, skin tone, or identity. We're placing YOUR AI model (from Master DNA) into this scene.
+
+    Create a 500+ word ultra-detailed prompt that puts YOUR AI model in this exact scene with all realism keywords."""
 
         messages = [
             {"role": "system", "content": instructions},
             {"role": "user", "content": [
-                {"type": "text", "text": user_text}, 
+                {"type": "text", "text": user_text},
                 {"type": "image_url", "image_url": {"url": data_url}}
             ]},
         ]
         
-        return self._call_chat_json(messages, max_tokens=2000)
+        return self._call_chat_json(messages, max_tokens=2500)
 
-    # -------------------- PERFECT CLONER --------------------
+
     def perfectcloner_analyze_filelike(self, uploaded_file, master_dna: str, identity_lock: bool = True) -> Dict[str, Any]:
         data_url = self._filelike_to_data_url(uploaded_file)
         instructions = "Analyze details (camera, lighting). Return JSON: recreation_prompt, negative_prompt, notes."
