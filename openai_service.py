@@ -202,6 +202,105 @@ class OpenAIService:
         ]
         return self._call_chat_json(messages, max_tokens=3000)
 
+    # -------------------- VIDEO REVIEW (Motion Detection) --------------------
+
+    def drmotion_video_review(self, frames_data_urls: list, master_dna: str,
+                              intensity: str = "Medium") -> Dict[str, Any]:
+        """
+        Analyze a reel/video (via extracted keyframes) to detect the person's motion,
+        emotion, and style, then generate prompts for Veo3, Kling, and Seedance models.
+
+        Args:
+            frames_data_urls: List of base64 data URLs of extracted keyframes
+            master_dna: Character identity description
+            intensity: Emotion intensity (Subtle, Medium, Strong)
+        """
+        # Build image content blocks for all frames
+        image_blocks = []
+        for i, url in enumerate(frames_data_urls):
+            image_blocks.append({"type": "text", "text": f"--- KEYFRAME {i+1} of {len(frames_data_urls)} ---"})
+            image_blocks.append({"type": "image_url", "image_url": {"url": url}})
+
+        instructions = (
+            "You are Dr. Motion Video Analyst, an expert at detecting human motion, emotion, "
+            "and body language from video keyframes.\n\n"
+            "You are given sequential keyframes extracted from a short reel/video. "
+            "Analyze the person's movement across frames and determine:\n\n"
+            "PHASE 1 - MOTION DETECTION:\n"
+            "1. PRIMARY MOTION: What is the person doing? (e.g., walking, dancing, posing, "
+            "talking, hair flip, turning, sitting, standing up, hand gestures, etc.)\n"
+            "2. MOTION DETAILS: Describe the exact body mechanics - how arms move, hip sway, "
+            "head position changes, weight transfer, footwork, hand gestures across frames\n"
+            "3. MOTION SPEED: Slow/medium/fast, any acceleration or deceleration\n"
+            "4. MOTION STYLE: Sensual, energetic, casual, dramatic, elegant, playful, etc.\n\n"
+            "PHASE 2 - EMOTION DETECTION:\n"
+            "1. PRIMARY EMOTION: What emotion is the person expressing?\n"
+            "2. MICRO-EXPRESSIONS: Specific facial details you observe across frames\n"
+            "3. BODY LANGUAGE CUES: How emotion manifests in posture and movement\n"
+            "4. ENERGY LEVEL: Low/medium/high and how it changes\n\n"
+            "PHASE 3 - VISUAL STYLE:\n"
+            "1. LIGHTING: Type, direction, mood\n"
+            "2. CAMERA: Angle, movement, framing\n"
+            "3. ENVIRONMENT: Background, setting, props\n"
+            "4. AESTHETIC: Color grading, mood, overall vibe\n\n"
+            "PHASE 4 - GENERATE PROMPTS:\n"
+            "Using your analysis, generate THREE model-specific prompts that would recreate "
+            "this exact motion and emotion with the user's AI character (from Master DNA).\n\n"
+            "MODEL-SPECIFIC OPTIMIZATION:\n"
+            "- Veo3: Google's latest model. Excels at physics accuracy, realistic motion, "
+            "dialogue-capable, natural lighting. Use descriptors: 'physically accurate motion', "
+            "'realistic gravity and momentum', 'natural light interaction', 'cinematic quality', "
+            "'fluid body dynamics', 'photorealistic rendering'.\n"
+            "- Kling: Excels at high-detail textures, smooth camera movements, photorealistic skin, "
+            "dynamic cloth physics. Use descriptors: '8k quality', 'cinematic camera', "
+            "'photorealistic skin texture', 'dynamic lighting', 'detailed hair physics'.\n"
+            "- Seedance (Seed Video): ByteDance's dance/motion model. Masters rhythmic body movement, "
+            "dance choreography, fluid transitions, expressive full-body motion. Use descriptors: "
+            "'fluid dance motion', 'rhythmic body movement', 'expressive choreography', "
+            "'smooth motion transitions', 'dynamic full-body expression', 'musical rhythm sync'.\n\n"
+            f"EMOTION INTENSITY: {intensity}\n\n"
+            "OUTPUT JSON STRUCTURE:\n"
+            "{\n"
+            "  'detected_motion': 'Primary motion type detected',\n"
+            "  'motion_details': 'Detailed description of body mechanics across frames',\n"
+            "  'motion_speed': 'Speed and rhythm of movement',\n"
+            "  'motion_style': 'Overall style classification',\n"
+            "  'detected_emotion': 'Primary emotion detected',\n"
+            "  'emotion_confidence': 'High/Medium/Low',\n"
+            "  'micro_expressions': ['List of 3-5 observed facial details'],\n"
+            "  'body_language_cues': ['List of 3-5 body movement observations'],\n"
+            "  'lighting_analysis': 'Lighting setup description',\n"
+            "  'camera_analysis': 'Camera angle and movement description',\n"
+            "  'environment': 'Background and setting description',\n"
+            "  'color_grading': 'Color mood and grading style',\n"
+            "  'veo3_prompt': 'Complete detailed prompt optimized for Veo3',\n"
+            "  'kling_prompt': 'Complete detailed prompt optimized for Kling',\n"
+            "  'seedance_prompt': 'Complete detailed prompt optimized for Seedance',\n"
+            "  'director_notes': 'Key notes for recreating this motion authentically'\n"
+            "}\n"
+        )
+
+        user_content = [
+            {"type": "text", "text": (
+                f"MASTER CHARACTER DNA (use this identity for all prompts):\n{master_dna}\n\n"
+                f"EMOTION INTENSITY: {intensity}\n\n"
+                "TASK: Analyze the following keyframes from a video reel. Detect the exact motion, "
+                "emotion, and style of the person. Then generate prompts for Veo3, Kling, and Seedance "
+                "that would recreate this EXACT motion and emotion using MY character (Master DNA).\n\n"
+                "IMPORTANT:\n"
+                "- Describe motion ACROSS frames (not just individual frame analysis)\n"
+                "- Each model prompt should be 150+ words, ultra-detailed\n"
+                "- Include physics (hair, cloth, skin), micro-expressions, temporal flow\n"
+                "- The prompts should make the AI model see a REAL PERSON, not a robotic avatar\n\n"
+            )}
+        ] + image_blocks
+
+        messages = [
+            {"role": "system", "content": instructions},
+            {"role": "user", "content": user_content},
+        ]
+        return self._call_chat_json(messages, max_tokens=4000)
+
     # -------------------- DIGITAL WARDROBE --------------------
     def wardrobe_fuse_filelike(self, uploaded_file, master_dna: str) -> Dict[str, Any]:
         data_url = self._filelike_to_data_url(uploaded_file)

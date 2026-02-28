@@ -22,6 +22,7 @@ from analytics_tracker import AnalyticsTracker
 from negative_prompt_generator import NegativePromptGenerator
 from batch_processor import BatchProcessor
 from ultra_realism_engine import UltraRealismEngine
+from video_analyzer import extract_keyframes_from_video
 
 load_dotenv()
 st.set_page_config(page_title="AI Prompt Studio Ultimate", layout="wide", page_icon="🎬")
@@ -123,7 +124,7 @@ with tabs[0]:
     st.header("🎬 DrMotion: Ultimate Video Prompt Engine")
 
     # Mode selector
-    mode = st.radio("Mode", ["🎯 Single Generation", "🔥 Batch Mode", "🛍️ Product Review"], horizontal=True)
+    mode = st.radio("Mode", ["🎯 Single Generation", "🔥 Batch Mode", "🛍️ Product Review", "📹 Video Review"], horizontal=True)
     st.divider()
 
     if mode == "🎯 Single Generation":
@@ -133,7 +134,12 @@ with tabs[0]:
         with col1:
             model_choice = st.selectbox("Video Model", ["Kling 1.5","Veo 2 / Sora","Luma Dream Machine","Runway Gen-3 Alpha","Minimax","Haiper"])
         with col2:
-            motion = st.selectbox("Motion", ["Walking Runway","Turning Head & Smiling","Drinking Coffee","Typing","Dancing","Running","Talking to Camera"])
+            motion = st.selectbox("Motion", [
+                "Walking Runway","Turning Head & Smiling","Drinking Coffee","Typing","Dancing","Running","Talking to Camera",
+                "--- Sensual Motions ---",
+                "Hair Flip & Smile","Slow Walk & Eye Contact","Sitting Pose Shift",
+                "Looking Over Shoulder","Standing Mirror Pose","Lip Bite & Glance","Wind Blown Pose"
+            ])
         with col3:
             # Emotion Mixing
             use_mixing = st.checkbox("Mix Emotions", value=False)
@@ -296,7 +302,7 @@ with tabs[0]:
                         st.text_area("", value=prompt, height=200, key=f"batch_{i}")
                         copy_button(f"📋 Copy {result['variation']}", prompt, f"batch_{i}")
 
-    else:  # Product Review
+    elif mode == "🛍️ Product Review":
         st.info("Generate 16s Product Review with Script + 2 Clips")
 
         img = st.file_uploader("Upload Product/Model", type=["png","jpg","webp"], key="pr_img")
@@ -345,6 +351,142 @@ with tabs[0]:
                     prompt_b = pr_data.get("clip_2_visual_prompt", "")
                     st.text_area("", value=prompt_b, height=250, key="pr_b")
                     copy_button("📋 Copy Clip B", prompt_b, "b")
+
+    else:  # Video Review
+        st.info("Upload a reel/video to detect motion & generate prompts for Veo3, Kling, and Seedance")
+
+        video_file = st.file_uploader(
+            "Upload Reel / Video",
+            type=["mp4", "mov", "avi", "webm", "mkv"],
+            key="vr_video"
+        )
+
+        col1, col2 = st.columns(2)
+        with col1:
+            num_frames = st.slider("Keyframes to Extract", min_value=3, max_value=8, value=5, key="vr_frames",
+                                   help="More frames = better motion detection but slower processing")
+        with col2:
+            vr_intensity = st.select_slider("Intensity", ["Subtle", "Medium", "Strong"], value="Medium", key="vr_int")
+
+        if video_file:
+            st.video(video_file)
+
+        if video_file and st.button("🔍 Analyze Video & Generate Prompts", type="primary", use_container_width=True):
+            with st.spinner("Extracting keyframes from video..."):
+                try:
+                    frames = extract_keyframes_from_video(video_file, num_frames=num_frames)
+                    st.success(f"Extracted {len(frames)} keyframes")
+                except Exception as e:
+                    st.error(f"Error extracting frames: {e}")
+                    frames = None
+
+            if frames:
+                with st.spinner("AI is analyzing motion, emotion & style... (this may take a moment)"):
+                    vr_data = svc.drmotion_video_review(
+                        frames, st.session_state.master_prompt, vr_intensity
+                    )
+                    analytics.track_generation("Video Review", vr_data.get("detected_emotion", ""), vr_data.get("detected_motion", ""), "Multi", vr_intensity, 1, 0)
+
+                if vr_data:
+                    st.success("✅ Video Analysis Complete!")
+
+                    # --- Detection Results ---
+                    st.markdown("### 🔍 Detected Motion & Emotion")
+
+                    det_col1, det_col2, det_col3, det_col4 = st.columns(4)
+                    with det_col1:
+                        st.metric("Motion", vr_data.get("detected_motion", "N/A"))
+                    with det_col2:
+                        st.metric("Emotion", vr_data.get("detected_emotion", "N/A"))
+                    with det_col3:
+                        st.metric("Confidence", vr_data.get("emotion_confidence", "N/A"))
+                    with det_col4:
+                        st.metric("Style", vr_data.get("motion_style", "N/A"))
+
+                    with st.expander("📊 Detailed Analysis", expanded=False):
+                        st.markdown(f"**Motion Details:** {vr_data.get('motion_details', '')}")
+                        st.markdown(f"**Motion Speed:** {vr_data.get('motion_speed', '')}")
+                        st.markdown(f"**Lighting:** {vr_data.get('lighting_analysis', '')}")
+                        st.markdown(f"**Camera:** {vr_data.get('camera_analysis', '')}")
+                        st.markdown(f"**Environment:** {vr_data.get('environment', '')}")
+                        st.markdown(f"**Color Grading:** {vr_data.get('color_grading', '')}")
+
+                        if "micro_expressions" in vr_data:
+                            st.markdown("**Micro-Expressions:**")
+                            for expr in vr_data["micro_expressions"]:
+                                st.markdown(f"  - {expr}")
+
+                        if "body_language_cues" in vr_data:
+                            st.markdown("**Body Language:**")
+                            for cue in vr_data["body_language_cues"]:
+                                st.markdown(f"  - {cue}")
+
+                        if vr_data.get("director_notes"):
+                            st.markdown(f"**Director Notes:** {vr_data['director_notes']}")
+
+                    st.divider()
+
+                    # --- Model Prompts ---
+                    st.markdown("### 🎬 Generated Prompts")
+
+                    veo3_prompt = vr_data.get("veo3_prompt", "")
+                    kling_prompt = vr_data.get("kling_prompt", "")
+                    seedance_prompt = vr_data.get("seedance_prompt", "")
+
+                    tab_veo, tab_kling, tab_seed = st.tabs(["🟢 Veo3", "🔵 Kling", "🟣 Seedance"])
+
+                    with tab_veo:
+                        st.text_area("Veo3 Prompt", value=veo3_prompt, height=300, key="vr_veo3")
+                        copy_button("📋 Copy Veo3 Prompt", veo3_prompt, "vr_veo3")
+                        neg_veo = NegativePromptGenerator.generate(
+                            vr_data.get("detected_emotion", "Authentic / Natural"),
+                            vr_data.get("detected_motion", ""),
+                            "Veo 2 / Sora"
+                        )
+                        with st.expander("🚫 Negative Prompt"):
+                            st.text_area("", value=neg_veo, height=100, key="vr_veo3_neg")
+                            copy_button("📋 Copy", neg_veo, "vr_veo3_neg")
+
+                    with tab_kling:
+                        st.text_area("Kling Prompt", value=kling_prompt, height=300, key="vr_kling")
+                        copy_button("📋 Copy Kling Prompt", kling_prompt, "vr_kling")
+                        neg_kling = NegativePromptGenerator.generate(
+                            vr_data.get("detected_emotion", "Authentic / Natural"),
+                            vr_data.get("detected_motion", ""),
+                            "Kling 1.5"
+                        )
+                        with st.expander("🚫 Negative Prompt"):
+                            st.text_area("", value=neg_kling, height=100, key="vr_kling_neg")
+                            copy_button("📋 Copy", neg_kling, "vr_kling_neg")
+
+                    with tab_seed:
+                        st.text_area("Seedance Prompt", value=seedance_prompt, height=300, key="vr_seedance")
+                        copy_button("📋 Copy Seedance Prompt", seedance_prompt, "vr_seedance")
+                        neg_seed = NegativePromptGenerator.generate(
+                            vr_data.get("detected_emotion", "Authentic / Natural"),
+                            vr_data.get("detected_motion", ""),
+                            "Haiper"
+                        )
+                        with st.expander("🚫 Negative Prompt"):
+                            st.text_area("", value=neg_seed, height=100, key="vr_seed_neg")
+                            copy_button("📋 Copy", neg_seed, "vr_seed_neg")
+
+                    # Save Template Option
+                    if st.button("💾 Save as Template", key="vr_save"):
+                        detected = vr_data.get("detected_motion", "Video Motion")
+                        detected_emo = vr_data.get("detected_emotion", "Detected")
+                        all_prompts = f"=== VEO3 ===\n{veo3_prompt}\n\n=== KLING ===\n{kling_prompt}\n\n=== SEEDANCE ===\n{seedance_prompt}"
+                        template_mgr.save_template(
+                            name=f"Video Review - {detected}",
+                            prompt=all_prompts,
+                            category="Video Review",
+                            emotion=detected_emo,
+                            motion=detected,
+                            model="Veo3/Kling/Seedance",
+                            tags=[detected_emo, detected, "Video Review", "Veo3", "Kling", "Seedance"],
+                            notes=f"Auto-detected from video on {datetime.now().strftime('%Y-%m-%d')}"
+                        )
+                        st.success("Template saved!")
 
 ######################
 # TAB 1: Templates

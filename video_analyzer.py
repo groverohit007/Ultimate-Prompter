@@ -5,8 +5,72 @@ Analyze videos to extract emotions, motions, and generate prompts
 Requires GPT-4V or similar video analysis capability
 """
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 import base64
+import tempfile
+import os
+
+
+def extract_keyframes_from_video(video_file, num_frames: int = 5) -> List[str]:
+    """
+    Extract evenly-spaced keyframes from a video file and return as base64 data URLs.
+
+    Args:
+        video_file: Streamlit UploadedFile (video)
+        num_frames: Number of frames to extract (default 5)
+
+    Returns:
+        List of base64 data URL strings for each keyframe
+    """
+    try:
+        import cv2
+    except ImportError:
+        raise ImportError(
+            "opencv-python-headless is required for video analysis. "
+            "Install it with: pip install opencv-python-headless"
+        )
+
+    # Write uploaded video to a temp file so OpenCV can read it
+    suffix = os.path.splitext(video_file.name)[1] if hasattr(video_file, 'name') else '.mp4'
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+        tmp.write(video_file.getvalue())
+        tmp_path = tmp.name
+
+    frames_data_urls = []
+    try:
+        cap = cv2.VideoCapture(tmp_path)
+        if not cap.isOpened():
+            raise ValueError("Could not open video file. Ensure it is a valid video format.")
+
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        if total_frames <= 0:
+            raise ValueError("Video has no readable frames.")
+
+        # Calculate evenly-spaced frame indices
+        if total_frames <= num_frames:
+            indices = list(range(total_frames))
+        else:
+            indices = [int(i * (total_frames - 1) / (num_frames - 1)) for i in range(num_frames)]
+
+        for idx in indices:
+            cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
+            ret, frame = cap.read()
+            if not ret:
+                continue
+
+            # Encode frame to JPEG bytes
+            _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
+            b64 = base64.b64encode(buffer).decode('utf-8')
+            frames_data_urls.append(f"data:image/jpeg;base64,{b64}")
+
+        cap.release()
+    finally:
+        os.unlink(tmp_path)
+
+    if not frames_data_urls:
+        raise ValueError("Could not extract any frames from the video.")
+
+    return frames_data_urls
 
 
 class VideoAnalyzer:

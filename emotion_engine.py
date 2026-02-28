@@ -615,6 +615,55 @@ class EmotionEngine:
                 "Authentic / Natural": "Filler words present, slight hesitations, hand gestures emerge organically, eyes break contact naturally",
                 "Professional / Confident": "Direct gaze, clear articulation, controlled hand gestures, minimal ums/ahs",
                 "Emotional / Touching / Vulnerable": "Voice wavers slightly, eyes glisten, hand touches heart or face, vulnerable pauses"
+            },
+            "Hair Flip & Smile": {
+                "base": "Hand reaches up to hair, fingers run through strands, hair tosses to one side with momentum, smile builds during flip",
+                "Flirty / Playful / Charming": "Slow deliberate hair toss, eyes half-closed during flip, coy smile appears after, chin tilts down then eyes look up through lashes",
+                "Happy / Excited / Joyful": "Energetic hair flip with bouncy movement, bright smile erupts, eyes sparkle, head tilts playfully",
+                "Professional / Confident": "Subtle hair adjustment, controlled flip, composed smile, maintaining elegant posture throughout",
+                "Authentic / Natural": "Casual hair brush-back, natural smile emerges, relaxed shoulder movement, genuine warmth in eyes"
+            },
+            "Slow Walk & Eye Contact": {
+                "base": "Measured steps forward, hips sway naturally with each step, eyes locked on camera, chin slightly elevated",
+                "Flirty / Playful / Charming": "Deliberate hip sway amplified, one foot crosses slightly in front, smoldering eye contact, lips part slightly, shoulders rotate with each step",
+                "Professional / Confident": "Powerful measured stride, shoulders back, commanding gaze, minimal sway, authoritative presence",
+                "Happy / Excited / Joyful": "Light bouncy steps, bright engaging eyes, warm smile growing, arms swing naturally",
+                "Authentic / Natural": "Natural relaxed walk, genuine eye contact with soft breaks, comfortable body language, subtle smile"
+            },
+            "Sitting Pose Shift": {
+                "base": "Seated position, body shifts weight, legs cross or uncross, hands adjust on lap or armrest, posture changes",
+                "Flirty / Playful / Charming": "Slow leg cross with deliberate movement, body leans slightly, hand rests on thigh, chin rests on hand, playful tilt of head",
+                "Professional / Confident": "Elegant posture adjustment, legs cross at ankles, hands clasped confidently, composed expression",
+                "Authentic / Natural": "Natural fidget and resettle, casual leg cross, relaxed hand placement, comfortable expression shift",
+                "Emotional / Touching / Vulnerable": "Legs draw in closer, arms wrap around self, head tilts down then up, soft vulnerable expression"
+            },
+            "Looking Over Shoulder": {
+                "base": "Body faces away, head turns slowly over shoulder, eyes find camera, expression builds during turn",
+                "Flirty / Playful / Charming": "Slow sultry turn, eyes lead before head follows, lips curve into mysterious smile, shoulder drops slightly revealing neck, bedroom eyes engage camera",
+                "Professional / Confident": "Sharp confident glance, direct eye contact, slight knowing smile, strong jawline definition in profile",
+                "Happy / Excited / Joyful": "Quick playful turn, bright surprised smile, eyes wide with delight, hair swings with turn momentum",
+                "Authentic / Natural": "Natural curious turn, relaxed expression, genuine acknowledgment, soft smile forms"
+            },
+            "Standing Mirror Pose": {
+                "base": "Standing pose facing forward or slightly angled, one hand on hip or at side, weight on one leg, mirror-selfie composition",
+                "Flirty / Playful / Charming": "Hand on hip with fingers spread, weight shifts to one hip creating S-curve, head tilted, lips slightly parted, body angled to accentuate silhouette",
+                "Professional / Confident": "Powerful stance, both feet planted, chin lifted, arms relaxed but purposeful, commanding presence fills frame",
+                "Happy / Excited / Joyful": "Playful pose with energy, peace sign or fun gesture, bright smile, body slightly bouncing",
+                "Authentic / Natural": "Relaxed natural stance, genuine comfortable expression, casual hand placement, effortless beauty"
+            },
+            "Lip Bite & Glance": {
+                "base": "Lower lip caught gently between teeth, eyes shift direction, subtle head movement, expression transitions",
+                "Flirty / Playful / Charming": "Slow deliberate lip bite, eyes look up through lashes, slight smile hidden behind the bite, head tilts down creating intimacy, pupils dilated",
+                "Authentic / Natural": "Brief natural lip bite during thought, eyes shift organically, unconscious gesture, returns to soft smile",
+                "Nervous / Anxious / Uncomfortable": "Anxious lip bite, eyes dart sideways, tension in jaw, self-conscious micro-expression",
+                "Funny / Witty / Goofy": "Exaggerated playful lip bite, comedic wide eyes, breaking into laugh after"
+            },
+            "Wind Blown Pose": {
+                "base": "Hair and light fabric catch wind, body adjusts to breeze, eyes narrow slightly against wind, natural environmental reaction",
+                "Flirty / Playful / Charming": "Hair streams dramatically, eyes partially closed creating sultry look, fabric clings and flows, hand reaches up to manage hair gracefully, serene sensual expression",
+                "Happy / Excited / Joyful": "Arms open to embrace wind, hair flies wildly, bright laughing expression, clothing flutters energetically, freedom and joy radiate",
+                "Professional / Confident": "Composed against wind, hair controlled, minimal disruption to posture, slight squint adds intensity, powerful presence despite elements",
+                "Emotional / Touching / Vulnerable": "Hair obscures face partially, gentle hand brushes strands away, wistful expression, wind creates ethereal vulnerable moment"
             }
         }
         
