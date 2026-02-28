@@ -202,6 +202,176 @@ class OpenAIService:
         ]
         return self._call_chat_json(messages, max_tokens=3000)
 
+    # -------------------- KLING MOTION (Multi-Shot 9s) --------------------
+
+    def drmotion_kling_motion(self, uploaded_file, category: str, elements: list,
+                              master_dna: str, intensity: str = "Medium",
+                              num_shots: int = 3, setting: str = "Auto-detect",
+                              camera_style: str = "Dynamic Mix",
+                              model_target: str = "Kling 3.0") -> Dict[str, Any]:
+        """
+        Generate a multi-shot 9-second video prompt optimized for Kling 3.0 / Kling Omni.
+
+        AI analyzes the uploaded image, understands the character, and creates a
+        cinematic multi-shot sequence with props/elements integration.
+
+        Args:
+            uploaded_file: Image of the AI model
+            category: Video vibe/category (Witty, Sensual, Tasteful, etc.)
+            elements: List of props/objects to include (e.g. ["iPhone", "Laptop"])
+            master_dna: Character identity description
+            intensity: Emotion intensity (Subtle, Medium, Strong)
+            num_shots: Number of shots in the sequence (2-5)
+            setting: Environment/setting for the video
+            camera_style: Camera movement style
+            model_target: Target model (Kling 3.0 or Kling Omni)
+        """
+        data_url = self._filelike_to_data_url(uploaded_file)
+
+        # Model-specific optimization
+        model_guides = {
+            "Kling 3.0": (
+                "Kling 3.0 is the latest generation with SUPERIOR capabilities:\n"
+                "- Ultra-high detail textures (8K quality, photorealistic skin pores)\n"
+                "- Advanced cloth physics simulation (realistic fabric draping, stretching, flowing)\n"
+                "- Dynamic hair physics with individual strand rendering\n"
+                "- Cinematic camera movements with smooth transitions\n"
+                "- Photorealistic skin with subsurface scattering\n"
+                "- Advanced lighting with real-time shadow dynamics\n"
+                "- Multi-shot consistency (character identity preservation across cuts)\n"
+                "- Natural motion with realistic momentum and inertia\n"
+                "USE DESCRIPTORS: '8k cinematic quality', 'photorealistic skin texture with visible pores', "
+                "'dynamic lighting shifts', 'smooth camera orbit', 'natural cloth physics simulation', "
+                "'realistic hair dynamics', 'cinematic depth of field', 'film grain subtlety'."
+            ),
+            "Kling Omni": (
+                "Kling Omni is the OMNI-capable model with enhanced understanding:\n"
+                "- Multimodal comprehension (understands context, emotion, narrative)\n"
+                "- Superior character consistency across multi-shot sequences\n"
+                "- Enhanced physics engine (gravity, momentum, cloth, hair, liquid)\n"
+                "- Advanced emotional expression rendering\n"
+                "- Better object interaction physics (hands + props)\n"
+                "- Narrative coherence across shots (story flow)\n"
+                "- Enhanced facial micro-expression rendering\n"
+                "- Natural prop/object interaction (holding, using, placing)\n"
+                "USE DESCRIPTORS: '8k cinematic quality', 'narrative coherence', 'photorealistic rendering', "
+                "'natural object interaction', 'seamless shot transitions', 'emotional depth', "
+                "'character consistency across cuts', 'physically accurate prop interaction'."
+            )
+        }
+        guide = model_guides.get(model_target, model_guides["Kling 3.0"])
+
+        # Get emotion section based on category mapping
+        category_emotion_map = {
+            "Witty / Humorous": "Funny / Witty / Goofy",
+            "Sensual / Alluring": "Flirty / Playful / Charming",
+            "Tasteful / Elegant": "Professional / Confident",
+            "Bold / Fierce": "Serious / Focused / Intense",
+            "Playful / Fun": "Happy / Excited / Joyful",
+            "Emotional / Cinematic": "Emotional / Touching / Vulnerable",
+            "Mysterious / Intriguing": "Authentic / Natural",
+            "Sassy / Attitude": "Funny / Witty / Goofy",
+        }
+        mapped_emotion = category_emotion_map.get(category, "Authentic / Natural")
+        emotion_prompt_section = EmotionEngine.build_emotion_prompt_section(mapped_emotion, intensity)
+
+        elements_text = ", ".join(elements) if elements else "No specific props"
+
+        instructions = (
+            f"You are Dr. Motion KLING SPECIALIST, an expert multi-shot video director "
+            f"specifically optimized for {model_target}.\n\n"
+            f"MODEL OPTIMIZATION:\n{guide}\n\n"
+            "YOUR MISSION:\n"
+            f"Create a MULTI-SHOT {num_shots}-shot cinematic 9-second video sequence.\n"
+            "Each shot must flow naturally into the next, creating a cohesive mini-narrative.\n"
+            "The AI model must look like a REAL PERSON with authentic emotion and natural motion.\n\n"
+            f"VIDEO CATEGORY/VIBE: {category}\n"
+            f"PROPS/ELEMENTS TO INTEGRATE: {elements_text}\n"
+            f"SETTING/ENVIRONMENT: {setting}\n"
+            f"CAMERA STYLE: {camera_style}\n\n"
+            "CRITICAL MULTI-SHOT REQUIREMENTS:\n"
+            f"1. SHOT PLANNING ({num_shots} shots across 9 seconds):\n"
+            "   - Each shot has a clear purpose in the narrative\n"
+            "   - Smooth transitions between shots (cut, dissolve, or continuous)\n"
+            "   - Props/elements must appear NATURALLY (not forced)\n"
+            "   - Character identity MUST be consistent across all shots\n"
+            "   - Lighting and color grading must match across shots\n\n"
+            "2. PROP/ELEMENT INTEGRATION:\n"
+            "   - Props should feel like natural parts of the scene\n"
+            "   - Show realistic interaction (hands gripping, fingers typing, etc.)\n"
+            "   - Props enhance the narrative, not distract from it\n"
+            "   - Include physics for props (weight, material, reflection)\n\n"
+            "3. EMOTION & ACTING:\n"
+            "   - Use the provided Emotion Database for authentic behavior\n"
+            "   - Emotion should evolve across shots (arc)\n"
+            "   - Include micro-expressions and body language\n"
+            "   - Match the video category vibe throughout\n\n"
+            "4. CINEMATOGRAPHY:\n"
+            "   - Camera movements should enhance the category vibe\n"
+            "   - Depth of field changes between shots\n"
+            "   - Lighting creates mood appropriate to category\n"
+            "   - Each shot has purposeful framing\n\n"
+            "5. REALISM REQUIREMENTS:\n"
+            "   - Natural skin texture with pores, imperfections\n"
+            "   - Realistic hair physics (individual strands)\n"
+            "   - Cloth simulation (fabric weight, draping, movement)\n"
+            "   - Physics-accurate prop interaction\n"
+            "   - Subsurface scattering on skin\n"
+            "   - Natural breathing, blinking, micro-movements\n\n"
+            "OUTPUT JSON STRUCTURE:\n"
+            "{\n"
+            "  'character_analysis': 'Brief analysis of the AI model from the image',\n"
+            "  'narrative_concept': 'The mini-story/concept for this 9-second sequence',\n"
+            "  'category_approach': 'How the category vibe is achieved throughout',\n"
+            "  'element_integration_plan': 'How each prop/element is woven into the sequence',\n"
+            "  'shots': [\n"
+            "    {\n"
+            "      'shot_number': 1,\n"
+            "      'duration': '0s-3s',\n"
+            "      'shot_type': 'Close-up / Medium / Wide / etc.',\n"
+            "      'description': 'What happens in this shot',\n"
+            "      'camera': 'Camera angle and movement',\n"
+            "      'acting': 'Character emotion and action',\n"
+            "      'props_visible': 'Which props appear and how',\n"
+            "      'transition_to_next': 'How this transitions to the next shot'\n"
+            "    }\n"
+            "  ],\n"
+            "  'kling_prompt': 'The COMPLETE, DETAILED prompt for Kling (500+ words). This is the MAIN output. Ultra-detailed, cinematic, multi-shot sequence described shot-by-shot with ALL details: character appearance, emotion, action, camera, lighting, props, physics, transitions. Optimized specifically for Kling video generation.',\n"
+            "  'negative_prompt': 'What to AVOID (bad anatomy, blurry, cartoon, etc.)',\n"
+            "  'audio_mood': 'Suggested audio/music mood and style for this sequence',\n"
+            "  'director_notes': 'Key tips for achieving the best result with this prompt'\n"
+            "}\n"
+        )
+
+        user_text = (
+            f"MASTER CHARACTER DNA:\n{master_dna}\n\n"
+            f"TARGET MODEL: {model_target}\n"
+            f"VIDEO CATEGORY: {category}\n"
+            f"EMOTION INTENSITY: {intensity}\n"
+            f"NUMBER OF SHOTS: {num_shots}\n"
+            f"PROPS/ELEMENTS: {elements_text}\n"
+            f"SETTING: {setting}\n"
+            f"CAMERA STYLE: {camera_style}\n\n"
+            f"--- EMOTION DATABASE BREAKDOWN ---\n"
+            f"{emotion_prompt_section}\n\n"
+            "TASK: Create a cinematic multi-shot 9-second video sequence.\n"
+            "The sequence should tell a micro-story using the props/elements naturally.\n"
+            "Match the category vibe perfectly.\n"
+            "The prompt must be ULTRA-DETAILED (500+ words) and specifically optimized "
+            f"for {model_target}.\n"
+            "Make the character feel ALIVE, REAL, and CINEMATIC.\n"
+            "Return JSON as specified above."
+        )
+
+        messages = [
+            {"role": "system", "content": instructions},
+            {"role": "user", "content": [
+                {"type": "text", "text": user_text},
+                {"type": "image_url", "image_url": {"url": data_url}}
+            ]},
+        ]
+        return self._call_chat_json(messages, max_tokens=4000)
+
     # -------------------- VIDEO REVIEW (Motion Detection) --------------------
 
     def drmotion_video_review(self, frames_data_urls: list, master_dna: str,
