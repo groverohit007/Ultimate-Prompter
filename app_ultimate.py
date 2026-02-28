@@ -124,7 +124,7 @@ with tabs[0]:
     st.header("🎬 DrMotion: Ultimate Video Prompt Engine")
 
     # Mode selector
-    mode = st.radio("Mode", ["🎯 Single Generation", "🔥 Batch Mode", "🛍️ Product Review", "📹 Video Review"], horizontal=True)
+    mode = st.radio("Mode", ["🎯 Single Generation", "🔥 Batch Mode", "🛍️ Product Review", "📹 Video Review", "🎬 Kling Motion"], horizontal=True)
     st.divider()
 
     if mode == "🎯 Single Generation":
@@ -352,7 +352,7 @@ with tabs[0]:
                     st.text_area("", value=prompt_b, height=250, key="pr_b")
                     copy_button("📋 Copy Clip B", prompt_b, "b")
 
-    else:  # Video Review
+    elif mode == "📹 Video Review":
         st.info("Upload a reel/video to detect motion & generate prompts for Veo3, Kling, and Seedance")
 
         video_file = st.file_uploader(
@@ -488,6 +488,170 @@ with tabs[0]:
                         )
                         st.success("Template saved!")
 
+    else:  # Kling Motion
+        st.info("Upload your AI model image to generate a multi-shot 9-second cinematic video prompt optimized for Kling 3.0 / Kling Omni")
+
+        img = st.file_uploader("Upload AI Model Image", type=["png", "jpg", "webp"], key="km_img")
+
+        # Row 1: Model target + Category + Intensity
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            km_model = st.selectbox("Target Model", ["Kling 3.0", "Kling Omni"], key="km_model",
+                                    help="Kling 3.0 for max visual quality, Kling Omni for narrative coherence")
+        with col2:
+            km_category = st.selectbox("Video Category / Vibe", [
+                "Witty / Humorous",
+                "Sensual / Alluring",
+                "Tasteful / Elegant",
+                "Bold / Fierce",
+                "Playful / Fun",
+                "Emotional / Cinematic",
+                "Mysterious / Intriguing",
+                "Sassy / Attitude"
+            ], key="km_cat")
+        with col3:
+            km_intensity = st.select_slider("Intensity", ["Subtle", "Medium", "Strong"], value="Medium", key="km_int")
+
+        # Row 2: Elements, Setting, Camera
+        col4, col5, col6 = st.columns(3)
+        with col4:
+            km_elements_raw = st.text_input(
+                "Props / Elements (comma-separated)",
+                placeholder="iPhone, Laptop, Coffee Cup, Sunglasses",
+                key="km_elements",
+                help="Add objects/props the AI will naturally integrate into the video"
+            )
+            km_elements = [e.strip() for e in km_elements_raw.split(",") if e.strip()] if km_elements_raw else []
+            if km_elements:
+                st.caption(f"Props: {', '.join(km_elements)}")
+
+        with col5:
+            km_setting = st.selectbox("Setting / Environment", [
+                "Auto-detect (from image)",
+                "Modern Apartment / Loft",
+                "Luxury Hotel Suite",
+                "Coffee Shop / Cafe",
+                "Urban Street / City",
+                "Office / Co-working Space",
+                "Beach / Seaside",
+                "Garden / Nature",
+                "Studio (Clean Background)",
+                "Rooftop / Terrace",
+                "Gym / Fitness Studio",
+                "Car Interior (Luxury)",
+                "Vanity / Dressing Room"
+            ], key="km_setting")
+            km_setting_val = km_setting if km_setting != "Auto-detect (from image)" else "Auto-detect"
+
+        with col6:
+            km_camera = st.selectbox("Camera Style", [
+                "Dynamic Mix (Recommended)",
+                "Slow Cinematic Orbits",
+                "Handheld / Vlog Style",
+                "Static with Depth Shifts",
+                "Tracking / Follow Shot",
+                "Push-In Dramatic",
+                "Smooth Dolly / Slider",
+                "POV / First Person"
+            ], key="km_camera")
+
+        # Row 3: Number of shots
+        km_shots = st.slider("Number of Shots", min_value=2, max_value=5, value=3, key="km_shots",
+                             help="How many distinct shots in the 9-second sequence")
+
+        # Shot breakdown preview
+        shot_durations = {
+            2: ["0s-4.5s", "4.5s-9s"],
+            3: ["0s-3s", "3s-6s", "6s-9s"],
+            4: ["0s-2s", "2s-4.5s", "4.5s-7s", "7s-9s"],
+            5: ["0s-2s", "2s-3.5s", "3.5s-5.5s", "5.5s-7.5s", "7.5s-9s"]
+        }
+        durations = shot_durations.get(km_shots, shot_durations[3])
+        shot_preview = " | ".join([f"Shot {i+1}: {d}" for i, d in enumerate(durations)])
+        st.caption(f"Shot Breakdown: {shot_preview}")
+
+        # Generate Button
+        if img and st.button("🎬 Generate Kling Motion Prompt", type="primary", use_container_width=True):
+            with st.spinner(f"Generating {km_shots}-shot cinematic sequence for {km_model}..."):
+                km_data = svc.drmotion_kling_motion(
+                    img, km_category, km_elements, st.session_state.master_prompt,
+                    km_intensity, km_shots, km_setting_val, km_camera, km_model
+                )
+                analytics.track_generation("Kling Motion", km_category, f"{km_shots}-shot", km_model, km_intensity, 1, 0)
+
+            if km_data:
+                st.success(f"✅ {km_shots}-Shot Kling Motion Sequence Generated!")
+
+                # Character Analysis & Concept
+                with st.expander("📊 Analysis & Concept", expanded=False):
+                    st.markdown(f"**Character Analysis:** {km_data.get('character_analysis', '')}")
+                    st.markdown(f"**Narrative Concept:** {km_data.get('narrative_concept', '')}")
+                    st.markdown(f"**Category Approach:** {km_data.get('category_approach', '')}")
+                    st.markdown(f"**Element Integration:** {km_data.get('element_integration_plan', '')}")
+
+                # Shot-by-Shot Breakdown
+                shots = km_data.get("shots", [])
+                if shots:
+                    with st.expander("🎥 Shot-by-Shot Breakdown", expanded=True):
+                        for shot in shots:
+                            shot_num = shot.get("shot_number", "?")
+                            duration = shot.get("duration", "")
+                            st.markdown(f"**Shot {shot_num}** ({duration}) — {shot.get('shot_type', '')}")
+                            st.markdown(f"- **Action:** {shot.get('description', '')}")
+                            st.markdown(f"- **Camera:** {shot.get('camera', '')}")
+                            st.markdown(f"- **Acting:** {shot.get('acting', '')}")
+                            st.markdown(f"- **Props:** {shot.get('props_visible', '')}")
+                            st.markdown(f"- **Transition:** {shot.get('transition_to_next', '')}")
+                            st.divider()
+
+                st.divider()
+
+                # Main Kling Prompt
+                kling_prompt = km_data.get("kling_prompt", "")
+                st.markdown(f"### 🎯 {km_model} Video Prompt")
+                st.text_area("", value=kling_prompt, height=400, key="km_final")
+
+                col_a, col_b, col_c = st.columns(3)
+                with col_a:
+                    copy_button(f"📋 Copy {km_model} Prompt", kling_prompt, "km_main")
+                with col_b:
+                    neg_prompt = km_data.get("negative_prompt", "")
+                    copy_button("🚫 Copy Negative Prompt", neg_prompt, "km_neg")
+                with col_c:
+                    audio_mood = km_data.get("audio_mood", "")
+                    copy_button("🎵 Copy Audio Mood", audio_mood, "km_audio")
+
+                # Negative Prompt
+                with st.expander("🚫 Negative Prompt"):
+                    st.text_area("", value=neg_prompt, height=150, key="km_neg_show")
+
+                # Audio Mood
+                with st.expander("🎵 Audio / Music Mood"):
+                    st.text_area("", value=audio_mood, height=100, key="km_audio_show")
+
+                # Director Notes
+                with st.expander("🎬 Director Notes"):
+                    st.markdown(km_data.get("director_notes", ""))
+
+                # Full JSON (for debugging/power users)
+                with st.expander("📋 Full Analysis (JSON)"):
+                    st.json(km_data)
+
+                # Save Template
+                if st.button("💾 Save as Template", key="km_save"):
+                    elements_tag = ", ".join(km_elements[:3]) if km_elements else "No props"
+                    template_mgr.save_template(
+                        name=f"Kling Motion - {km_category} ({km_shots} shots)",
+                        prompt=kling_prompt,
+                        category="Kling Motion",
+                        emotion=km_category,
+                        motion=f"{km_shots}-shot sequence",
+                        model=km_model,
+                        tags=[km_category, km_model, f"{km_shots}-shot", "Kling Motion"] + km_elements[:3],
+                        notes=f"Props: {elements_tag} | Setting: {km_setting_val} | {datetime.now().strftime('%Y-%m-%d')}"
+                    )
+                    st.success("Template saved!")
+
 ######################
 # TAB 1: Templates
 ######################
@@ -553,7 +717,7 @@ with tabs[1]:
 
         tpl_name = st.text_input("Template Name", "My Awesome Prompt")
         tpl_prompt = st.text_area("Prompt", "", height=200)
-        tpl_category = st.selectbox("Category", ["DrMotion", "Product Review", "Cloner", "Custom"])
+        tpl_category = st.selectbox("Category", ["DrMotion", "Kling Motion", "Product Review", "Cloner", "Custom"])
         tpl_emotion = st.selectbox("Emotion", EmotionEngine.get_all_emotions(), key="tpl_emo")
         tpl_motion = st.text_input("Motion Type", "")
         tpl_tags = st.text_input("Tags (comma-separated)", "")
