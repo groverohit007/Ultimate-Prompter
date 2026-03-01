@@ -786,7 +786,13 @@ class OpenAIService:
 
     # -------------------- HELPERS --------------------
     def _filelike_to_data_url(self, uploaded_file) -> str:
-        content = uploaded_file.getvalue()
+        if hasattr(uploaded_file, 'getvalue'):
+            content = uploaded_file.getvalue()
+        elif hasattr(uploaded_file, 'read'):
+            uploaded_file.seek(0)
+            content = uploaded_file.read()
+        else:
+            content = uploaded_file
         mime = getattr(uploaded_file, "type", "image/jpeg") or "image/jpeg"
         b64 = base64.b64encode(content).decode("utf-8")
         return f"data:{mime};base64,{b64}"
@@ -806,9 +812,13 @@ class OpenAIService:
                 max_tokens=max_tokens,
                 response_format={"type": "json_object"},
             )
-            return json.loads(self._sanitize_json_text(resp.choices[0].message.content))
+            raw = resp.choices[0].message.content if resp.choices else None
+            if not raw:
+                print("❌ OPENAI ERROR: Empty response content")
+                return {}
+            return json.loads(self._sanitize_json_text(raw))
         except Exception as e:
-            print(f"❌ OPENAI ERROR: {e}")
+            print(f"❌ OPENAI ERROR: {type(e).__name__}: {e}")
             if hasattr(e, 'response'):
                 print(f"Response: {e.response}")
             return {}
