@@ -572,12 +572,16 @@ with tabs[0]:
 
         # Generate Button
         if img and st.button("🎬 Generate Kling Motion Prompt", type="primary", use_container_width=True):
+            km_data = None
             with st.spinner(f"Generating {km_shots}-shot cinematic sequence for {km_model}..."):
-                km_data = svc.drmotion_kling_motion(
-                    img, km_category, km_elements, st.session_state.master_prompt,
-                    km_intensity, km_shots, km_setting_val, km_camera, km_model
-                )
-                analytics.track_generation("Kling Motion", km_category, f"{km_shots}-shot", km_model, km_intensity, 1, 0)
+                try:
+                    km_data = svc.drmotion_kling_motion(
+                        img, km_category, km_elements, st.session_state.master_prompt,
+                        km_intensity, km_shots, km_setting_val, km_camera, km_model
+                    )
+                    analytics.track_generation("Kling Motion", km_category, f"{km_shots}-shot", km_model, km_intensity, 1, 0)
+                except Exception as e:
+                    st.error(f"Kling Motion generation failed: {type(e).__name__}: {e}")
 
             if km_data:
                 st.success(f"✅ {km_shots}-Shot Kling Motion Sequence Generated!")
